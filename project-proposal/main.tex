@@ -38,24 +38,28 @@
 
 % -----------------------------------------------------
 
-\title{Grievance-Resolution System for a Tier-2/3 City}
+\title{Smart Personal Finance \& Goal Management System}
 
-\BvrSetLabInstructor{Dr. Raghav B. Venkataramaiyer}
+\BvrSetLabInstructor{Ms.Nisha Thakur}
 
 \BvrSubtitle{%
   Project Proposal for UCS503P  \\
   Submitted to: \BvrLabInstructorValue \\ \bfseries
-  Thapar Institute of Engineering and Technology% 
+  Thapar Institute of Engineering and Technology%
 }
 
 \author{
-  Vidya Vaidyanathan, CSED%
-  \thanks{Roll No: \texttt{1024030xxx}, %
-    Email: \texttt{vvaidhanathan\_be24\@thapar.edu}}
-  \and 
-  Bhanurekha Ganesan, CSED%
-  \thanks{Roll No: \texttt{1024030xxx}, %
-    Email: \texttt{bganesan\_be24\@thapar.edu}}
+  Riya Garg, CSED%
+  \thanks{Roll No: \texttt{1024030094}}
+  \and
+  Niharika, CSED%
+  \thanks{Roll No: \texttt{1024030450}}
+  \and
+  Anushka Aggarwal, CSED%
+  \thanks{{Roll No: \texttt{1024030443}}
+  \and
+  Snehal Agarwal, CSED%
+  \thanks{{Roll No: \texttt{1024030259}}
 }
 
 \date{\today}
@@ -65,178 +69,509 @@
 
 \section{Higher-order goal%
   \BvrHint{\ldots secondary framing}}
-This project aims to improve sustainable urban
-governance by reducing the time and effort required to
-resolve citizen issues. While the topic is broader than
-any single municipality, the immediate engineering
-objective is to translate \emph{efficient public
-  service delivery} into a measurable, deployable
-software solution.
 
-\section{Time-to-value %
-\BvrHint{\ldots primary heuristic}}
+This project aims to improve personal financial decision-making by helping users
+not only track their income and expenses, but also understand their financial
+behavior and take concrete actions toward long-term goals. Most personal
+finance applications primarily present financial information through balances,
+transactions, and charts. However, users often struggle to translate this
+information into consistent financial behavior.
+
+The higher-order goal of this project is therefore to build a
+\textbf{goal-oriented personal finance system} that converts financial data into
+actionable recommendations, supports planning under uncertainty, and helps
+users make informed decisions while maintaining privacy and transparency.
+
+
+\section{Time-to-value%
+  \BvrHint{\ldots primary heuristic}}
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item We will deliver meaningful increments quickly by prototyping the core user workflow and validating it with users within a short iteration window.
-    \item We will prioritize fast feedback over perfection by using weekly iterations (and targeting CI-backed automation early) to reduce release friction.
-    \item Success is defined by what can be delivered and measured in the first iteration, then improved based on user feedback.
+    \item We will deliver meaningful functionality incrementally, beginning with
+    secure transaction tracking, financial goals, budgeting, and a basic
+    dashboard.
+    
+    \item We will prioritize rapid feedback by developing the system in
+    iterations and validating each major feature through automated tests and
+    user-oriented scenarios.
+    
+    \item Advanced features such as behavioral pattern detection, anomaly
+    detection, scenario simulation, and shared-finance workflows will be added
+    incrementally after the core financial model is stable.
+    
+    \item CI/CD automation will be introduced early so that every significant
+    change can be tested consistently and deployed in a repeatable manner.
 \end{itemize}
+
 
 \section{Problem Statement}
-Citizens in a tier-2/3 Indian city face delays and uncertainty when reporting local issues (e.g., streetlight outages, water leakage, garbage accumulation, road potholes). Common pain points include:
+
+Many personal finance applications focus primarily on displaying financial
+information such as balances, transactions, spending categories, and monthly
+summaries. While these features are useful for understanding past spending,
+they do not necessarily help users change their financial behavior or determine
+whether they are on track to achieve future goals.
+
+Common challenges include:
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item \textbf{Fragmentation:} complaints are often made via multiple channels (calls, social media, paper forms), causing lost context.
-    \item \textbf{Low transparency:} citizens cannot easily see the status of their complaint (e.g., ``received'', ``assigned'', ``in progress'', ``resolved'').
-    \item \textbf{Slow coordination:} departments/field teams lack a unified, trackable workflow with clear ownership.
-    \item \textbf{Poor data quality:} duplicate or incomplete reports force rework and extend resolution time.
+    \item \textbf{Limited goal orientation:} users can see their spending but
+    may not understand how their current behavior affects goals such as
+    building an emergency fund, purchasing a laptop, planning a trip, or
+    saving for a major expense.
+    
+    \item \textbf{Irregular income and expenses:} traditional monthly budgets
+    often assume predictable income and expenses and therefore provide limited
+    guidance when financial conditions vary.
+    
+    \item \textbf{Weak behavioral feedback:} users may repeatedly exhibit
+    spending patterns without receiving specific, timely, and actionable
+    suggestions.
+    
+    \item \textbf{Shared financial complexity:} households may have multiple
+    contributors, shared expenses, different ownership arrangements, and
+    approval requirements that are difficult to represent using simple
+    expense-splitting mechanisms.
+    
+    \item \textbf{Limited planning under uncertainty:} a single projection may
+    give users a false sense of certainty when future income, expenses, and
+    savings behavior can change.
+    
+    \item \textbf{Lack of transparent intervention:} financial applications
+    may recommend actions without clearly explaining why a recommendation was
+    generated or allowing users to inspect and modify the underlying rules.
 \end{itemize}
 
-\textbf{Why this matters now (contextual relevance):} In an urban setting with limited staff bandwidth, even small process improvements can noticeably reduce resolution delays and repeated submissions.
+\textbf{Why this matters now (contextual relevance):} Users increasingly manage
+multiple financial goals and irregular expenses while making decisions under
+uncertainty. A system that connects financial behavior with future goals can
+provide more useful guidance than a system that only reports historical
+transactions.
 
-\section{Proposed Solution %
-\BvrHint{\ldots Software Proposition}}
+
+\section{Proposed Solution%
+  \BvrHint{\ldots Software Proposition}}
+
 \subsection{Overview}
-Build a \textbf{web-based} ``Grievance-to-Resolution'' system with the following components:
+
+We propose a \textbf{web-based Smart Personal Finance \& Goal Management
+System} that combines financial tracking, goal-based budgeting, behavioral
+analysis, scenario simulation, and actionable interventions.
+
+The major components are:
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item \textbf{Citizen submission portal:} users submit an issue with photo (optional), category, and locality/ward.
-    \item \textbf{Automated triage:} basic duplicate detection and completeness checks.
-    \item \textbf{Department workflow:} assign issues to relevant department/team and update statuses.
-    \item \textbf{Status transparency:} citizens track status and receive notifications when resolved.
-    \item \textbf{Admin/ops dashboard:} performance summaries (resolution time, backlog).
+    \item \textbf{Financial tracking:} users record and categorize income,
+    expenses, accounts, and transactions.
+    
+    \item \textbf{Goal management:} users define financial goals with target
+    amounts, deadlines, priorities, and progress.
+    
+    \item \textbf{Goal-based budgeting:} the system connects spending and
+    savings behavior with financial goals and provides recommendations for
+    staying on track.
+    
+    \item \textbf{Scenario simulation:} users can compare different financial
+    scenarios and use Monte-Carlo-style simulations to estimate the likelihood
+    of achieving a goal under varying income, expenses, and savings conditions.
+    
+    \item \textbf{Habit and transaction analysis:} the system detects recurring
+    spending patterns and links them to user-defined or automatically
+    suggested financial rules.
+    
+    \item \textbf{Anomaly detection and intervention:} unusual or rapidly
+    increasing spending patterns are identified and converted into gentle,
+    concrete recommendations rather than only displaying warnings.
+    
+    \item \textbf{Shared household finances:} users can manage shared expenses,
+    ownership, approval flows, contributions, and fairness metrics.
+    
+    \item \textbf{Audit and decision support:} users can export financial
+    records and compare scenarios for significant financial decisions.
 \end{itemize}
+
 
 \subsection{Core workflow}
+
 \begin{enumerate}[leftmargin=0.7cm]
-    \item Citizen creates a complaint and receives a complaint ID immediately.
-    \item System validates completeness and suggests possible duplicates (lightweight similarity on text/category and approximate location).
-    \item Department staff update status (Received $\rightarrow$ Assigned $\rightarrow$ In Progress $\rightarrow$ Resolved).
-    \item Citizen views status updates and resolution notes.
+    \item A user securely creates an account and records or imports financial
+    transactions.
+    
+    \item Transactions are categorized and associated with relevant accounts,
+    goals, budgets, or household members.
+    
+    \item The system analyzes historical financial behavior to identify
+    recurring patterns and unusual changes.
+    
+    \item The user creates a financial goal by specifying a target amount,
+    deadline, and other relevant preferences.
+    
+    \item The system estimates whether the goal is achievable using current
+    financial behavior and generates alternative scenarios.
+    
+    \item The user can modify assumptions such as income, expenses, or monthly
+    savings and compare the resulting scenarios.
+    
+    \item When the system detects a potentially important spending pattern or
+    deviation, it provides an explainable intervention with a concrete
+    suggested adjustment.
+    
+    \item Users can inspect, modify, accept, or reject the rules behind
+    automated recommendations.
 \end{enumerate}
 
-\subsection{Operational constraints for an educational, tier-2/3 setting}
+
+\subsection{Operational constraints for a privacy-first financial system}
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item Keep the solution usable on low-to-mid range devices via responsive web design.
-    \item Avoid dependence on advanced research algorithms; focus on workflow, automation, and system correctness.
-    \item Design for deployability using common web hosting and managed databases.
+    \item Financial information must be protected through secure authentication,
+    authorization, encryption, and least-privilege access.
+    
+    \item The system should minimize collection of sensitive information and
+    store only the data required for its intended functionality.
+    
+    \item Recommendations should be explainable and should not make
+    irreversible financial decisions automatically.
+    
+    \item The system will provide financial planning and visualization features
+    without attempting to function as a full brokerage platform.
+    
+    \item Money calculations must be implemented carefully and tested
+    extensively to avoid rounding and arithmetic errors.
 \end{itemize}
 
-\section{Solution Approach %
-\BvrHint{\ldots Engineering focus}}
-This is an engineering course project, so we focus on scalable administrative and workflow aspects rather than novel algorithm research.
 
-\subsection{Duplicate/quality assistance %
-\BvrHint{\ldots non-research}}
-Duplicate detection will be heuristic-based:
+\section{Solution Approach%
+  \BvrHint{\ldots Engineering focus}}
+
+This is an engineering course project, so the focus will be on reliable system
+design, secure handling of financial information, explainable decision
+support, testing, and maintainability rather than purely research-oriented
+algorithmic novelty.
+
+
+\subsection{Goal-based budgeting and scenario simulation}
+
+The system will connect current financial behavior with future goals. Instead
+of assuming a single deterministic future, the system will allow users to
+compare multiple scenarios.
+
+Monte-Carlo-style simulation will be used to generate multiple possible future
+financial paths based on assumptions about income, expenses, savings, and other
+relevant variables. The resulting distribution can be used to estimate the
+likelihood of achieving a financial goal by a specified deadline.
+
+Users will be able to compare scenarios such as:
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item Normalize text (category + short description keywords).
-    \item Use a simple similarity measure (e.g., token overlap / TF-IDF cosine with threshold) without claiming state-of-the-art.
-    \item Show top candidate duplicates to staff for decision; never fully auto-delete or auto-reject.
+    \item maintaining current spending behavior,
+    \item reducing selected discretionary expenses,
+    \item increasing monthly savings,
+    \item experiencing lower or irregular income, and
+    \item changing the target date or goal amount.
 \end{itemize}
 
-\subsection{Web architecture %
-\BvrHint{\ldots web-based solution}}
-A typical 3-tier web architecture:
+
+\subsection{Habit and transaction rule engine}
+
+The system will analyze transaction history to identify recurring or
+meaningful spending patterns. Based on these patterns, it can suggest rules
+that users can inspect and modify.
+
+For example, repeated spending in a particular category may result in a
+suggestion to set a monthly limit or redirect a portion of future savings
+toward a selected goal.
+
+The rule engine will be designed to remain transparent so that users can
+understand why a recommendation was generated and modify or disable it when
+required.
+
+
+\subsection{Anomaly detection and intervention}
+
+The system will identify unusual spending behavior using historical
+transaction patterns and category-level trends.
+
+Instead of presenting only an ``anomaly detected'' message, the system will
+provide a gentle intervention containing:
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item \textbf{Frontend:} responsive UI for citizens and staff (status pages, submission form, dashboard).
-    \item \textbf{Backend API:} authentication, complaint submission, status transitions, assignment logic.
-    \item \textbf{Database:} store users, complaints, status history, attachments metadata.
+    \item the category or behavior that changed,
+    \item an explanation of the deviation,
+    \item the potential impact on relevant goals, and
+    \item a concrete suggested adjustment.
 \end{itemize}
 
-\subsection{CI/CD and fast delivery enabler}
-CI/CD will be used to:
+
+\subsection{Shared household finance workflow}
+
+The system will support multiple users participating in shared financial
+activities. Each shared transaction can have ownership information and,
+where appropriate, an approval state.
+
+The system will maintain contribution information and provide fairness metrics
+based on configurable sharing rules rather than assuming that all expenses
+must always be divided equally.
+
+
+\subsection{Web architecture%
+  \BvrHint{\ldots web-based solution}}
+
+A typical 3-tier architecture will be used:
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item Automatically build and run tests on every change.
-    \item Produce repeatable deployment artifacts to staging.
-    \item Enable safe and frequent releases of incremental features.
+    \item \textbf{Frontend:} responsive user interface for dashboards,
+    transactions, budgets, goals, scenarios, and household workflows.
+    
+    \item \textbf{Backend API:} authentication, authorization, transaction
+    processing, budgeting logic, rule execution, anomaly detection, scenario
+    simulation, and audit logging.
+    
+    \item \textbf{Database:} storage for users, accounts, transactions,
+    categories, goals, budgets, rules, scenarios, household relationships,
+    approvals, and audit records.
 \end{itemize}
 
-\section{Evaluation Criterion %
-\BvrHint{\ldots measurable and attributable}}
-We define success using measurable metrics tied to the core workflow.
+
+\subsection{Security and auditability}
+
+Financial information will be treated as sensitive application data. The
+system will incorporate:
+
+\begin{itemize}[leftmargin=0.7cm]
+    \item authentication and role-based authorization,
+    \item least-privilege access,
+    \item encryption for sensitive data and secure communication,
+    \item secure secret management,
+    \item validation of financial inputs, and
+    \item append-oriented audit logs for important financial actions.
+\end{itemize}
+
+
+\subsection{CI/CD and testing}
+
+CI/CD will be used to automatically build the application, run automated
+tests, perform static checks, and produce repeatable deployment artifacts.
+
+Special attention will be given to financial calculations. Unit tests,
+integration tests, and property-based tests will be used to validate important
+properties of money calculations, budgeting logic, scenario calculations, and
+goal projections.
+
+
+\section{Evaluation Criterion%
+  \BvrHint{\ldots measurable and attributable}}
+
+Success will be evaluated using measurable criteria related to correctness,
+goal planning, recommendation quality, and system reliability.
+
 
 \subsection{Primary evaluation metric}
-\textbf{Time-to-acknowledgement (TTA):} time between complaint submission and ``Received/Assigned'' status creation in the system.
-\begin{itemize}[leftmargin=0.7cm]
-    \item Target: median TTA $\le$ 2 hours during pilot window.
-    \item Attribution: measured from database timestamps (submission vs. first status update by staff).
-\end{itemize}
+
+\textbf{Goal projection accuracy and consistency:} the system should produce
+consistent and mathematically valid goal projections when identical assumptions
+are supplied.
+
+The evaluation will compare simulated outcomes against controlled test
+scenarios with known expected behavior.
+
 
 \subsection{Secondary evaluation metrics}
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item \textbf{Resolution time reduction:} reduce time-to-resolved compared to baseline process (even if baseline is collected via survey).
-    \item \textbf{Duplicate rate:} percentage of complaints flagged as duplicates and resolved without rework.
-    \item \textbf{User clarity:} citizen-reported clarity of status using a simple 1--5 feedback question.
-    \item \textbf{Reliability:} availability of staging/production for login and submission during business hours (e.g., $\ge$ 99\% uptime in pilot).
+    \item \textbf{Goal achievement feasibility:} percentage of test scenarios
+    in which the system correctly identifies whether a goal is feasible under
+    the specified assumptions.
+    
+    \item \textbf{Recommendation usefulness:} user evaluation of whether
+    suggested interventions are understandable, relevant, and actionable.
+    
+    \item \textbf{Anomaly detection quality:} ability to identify meaningful
+    deviations without producing excessive false alerts.
+    
+    \item \textbf{Calculation correctness:} correctness of balances, budgets,
+    contributions, projections, and other money-related calculations.
+    
+    \item \textbf{System reliability:} successful completion of critical
+    workflows such as authentication, transaction recording, budgeting, and
+    goal creation.
+    
+    \item \textbf{Security and auditability:} verification that unauthorized
+    users cannot access protected financial information and that important
+    financial actions generate appropriate audit records.
 \end{itemize}
 
-\subsection{Pilot validation plan %
-\BvrHint{\ldots high-level}}
-\begin{itemize}[leftmargin=0.7cm]
-    \item Recruit 10--20 pilot users (citizens) and 3--5 staff roles (department simulation if real staff unavailable).
-    \item Compare metrics before/after within the iteration window by logging baseline estimates via short interviews or existing process observations.
-\end{itemize}
 
-\section{Scalability %
-\BvrHint{\ldots with foresight}}
-The proposition should scale in both theoretical and practical senses.
+\subsection{Pilot validation plan%
+  \BvrHint{\ldots high-level}}
+
+A small group of users will be given representative financial scenarios and
+asked to complete common tasks such as creating a goal, categorizing
+transactions, comparing scenarios, and responding to spending interventions.
+
+The evaluation will combine automated test results with user feedback on
+clarity, usefulness, and ease of understanding.
+
+
+\section{Scalability%
+  \BvrHint{\ldots with foresight}}
+
+The system should be scalable both technically and functionally.
 
 \begin{enumerate}[leftmargin=0.7cm]
-    \item \textbf{Scalable (theoretically):} The system should support growth in number of complaints and concurrent dashboard usage by:
-    \begin{itemize}[leftmargin=0.7cm]
-        \item decoupling components (frontend/backend),
-        \item enabling pagination and indexing for common queries,
-        \item using stateless API design.
-    \end{itemize}
+
+    \item \textbf{Scalable architecture:} the frontend, backend services, and
+    database will be separated so that individual components can evolve
+    independently.
     
-    \item \textbf{Operationally deployable (practically):} The system should run on common web hosting:
-    \begin{itemize}[leftmargin=0.7cm]
-        \item managed database,
-        \item containerized or platform-hosted deployment,
-        \item CI/CD pipeline for staging/production.
-    \end{itemize}
+    \item \textbf{Database scalability:} indexes, pagination, efficient
+    queries, and appropriate data modelling will be used for transaction-heavy
+    workloads.
+    
+    \item \textbf{Time-series scalability:} transaction history and financial
+    events will be stored in a form suitable for historical analysis and
+    forecasting.
+    
+    \item \textbf{Simulation scalability:} scenario simulations can be
+    separated from regular request processing when computational requirements
+    increase.
+    
+    \item \textbf{Operational scalability:} CI/CD and containerized or
+    platform-hosted deployment can be used to support repeatable deployments.
+    
 \end{enumerate}
 
-\section{Engine availability heuristic}
-A mature set of ``engines'' (tooling/services) is available to implement this as a web-based project:
-\begin{itemize}[leftmargin=0.7cm]
-    \item Web framework for REST APIs and templated/reactive pages.
-    \item Managed relational or document database.
-    \item Authentication approach (token-based or session-based).
-    \item Object storage for optional attachments (or local storage for pilot).
-    \item Test framework for unit/integration tests.
-    \item CI runner and staging deployment target.
-\end{itemize}
-We will use these mature components to focus on workflow design, correctness, and measurement rather than inventing new infrastructure.
 
-\section{Project scope and deliverables %
-\BvrHint{\ldots iteration-friendly}}
-\subsection{Initial deliverable %
-\BvrHint{\ldots first iteration}}
+\section{Engine availability heuristic}
+
+A mature set of software engineering tools and technologies is available to
+implement the proposed system:
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item Citizen submission form + complaint ID generation
-    \item Staff workflow: update status and assignment
-    \item Citizen status page: view timeline/history
-    \item Basic logging and timestamps for TTA measurement
-    \item CI: build + backend unit tests + linting
-    \item CD to staging with a single command or pipeline job
+    \item Web framework for the frontend and backend application.
+    
+    \item Relational database for structured financial and user data.
+    
+    \item Authentication and authorization mechanisms for secure access.
+    
+    \item Time-series processing and forecasting libraries for financial
+    history and scenario analysis.
+    
+    \item Statistical and numerical libraries for Monte-Carlo-style
+    simulations.
+    
+    \item Automated testing frameworks including support for property-based
+    testing.
+    
+    \item CI/CD tools for automated testing and deployment.
 \end{itemize}
+
+These mature technologies will allow the project to focus on financial
+workflow design, correctness, privacy, explainability, and user behavior
+rather than building infrastructure from scratch.
+
+
+\section{Project scope and deliverables%
+  \BvrHint{\ldots iteration-friendly}}
+
+\subsection{Initial deliverable%
+  \BvrHint{\ldots first iteration}}
+
+\begin{itemize}[leftmargin=0.7cm]
+    \item Secure user authentication and basic authorization.
+    
+    \item Income and expense transaction management.
+    
+    \item Transaction categorization and financial dashboard.
+    
+    \item Creation and tracking of financial goals.
+    
+    \item Basic goal-based budgeting.
+    
+    \item Initial database schema and secure backend API.
+    
+    \item Automated unit and integration tests for core financial calculations.
+    
+    \item CI pipeline for building and testing the application.
+\end{itemize}
+
 
 \subsection{Subsequent deliverables}
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item Lightweight duplicate suggestions with staff review
-    \item Notification layer (email/SMS optional in later iteration; can start with in-app notifications)
-    \item Admin dashboard for metrics and backlog
-    \item Improved search/filtering and indexed queries for scale readiness
+    \item Habit and transaction pattern detection.
+    
+    \item User-inspectable rule engine for financial recommendations.
+    
+    \item Anomaly detection and gentle intervention system.
+    
+    \item Monte-Carlo-style goal projections and scenario comparison.
+    
+    \item Shared household finances with ownership and approval workflows.
+    
+    \item Fairness metrics for shared financial contributions.
+    
+    \item Tax-aware and investment-aware financial views without brokerage
+    functionality.
+    
+    \item Exportable audit trail and decision scenario reports.
+    
+    \item Property-based testing for important financial calculations.
 \end{itemize}
+
 
 \section{Risks and mitigations}
+
 \begin{itemize}[leftmargin=0.7cm]
-    \item \textbf{Data privacy / consent:} minimize collected data; keep attachments optional; store only what is needed.
-    \item \textbf{Staff adoption:} provide an easy UI for status updates; keep workflow steps minimal; include shortcuts.
-    \item \textbf{Evaluation measurement ambiguity:} instrument timestamps and define clear status transitions before development begins.
-    \item \textbf{Operational issues in pilot:} use staging early; ensure CI/CD produces repeatable deployments.
+
+    \item \textbf{Financial data privacy:} minimize sensitive data collection,
+    enforce least-privilege access, use encryption, and maintain secure audit
+    logs.
+    
+    \item \textbf{Incorrect financial calculations:} use precise numerical
+    representations, clearly defined calculation rules, extensive automated
+    testing, and property-based tests.
+    
+    \item \textbf{Unhelpful recommendations:} keep recommendations
+    explainable, allow users to inspect and modify rules, and avoid
+    automatically making irreversible financial decisions.
+    
+    \item \textbf{False anomaly alerts:} use historical patterns and
+    configurable thresholds while allowing users to dismiss or provide
+    feedback on alerts.
+    
+    \item \textbf{Simulation uncertainty:} clearly communicate that scenario
+    projections are estimates based on assumptions rather than guaranteed
+    outcomes.
+    
+    \item \textbf{Scope complexity:} implement the core tracking, goal, and
+    budgeting functionality first and introduce advanced features in
+    subsequent iterations.
+    
+    \item \textbf{Security vulnerabilities:} use secure coding practices,
+    dependency checks, automated testing, and restricted access to sensitive
+    resources.
+    
 \end{itemize}
 
+
 \section{Summary}
-This project proposes a deployable web platform to reduce grievance handling delays in a tier-2/3 city context. It meets the course criteria by emphasizing time-to-value through rapid iterations, implementing CI/CD to support frequent safe releases, and using measurable evaluation criteria (especially time-to-acknowledgement). It remains focused on engineering workflow and scalability readiness rather than research-driven novelty.
+
+This project proposes a privacy-first Smart Personal Finance \& Goal
+Management System designed to move beyond passive financial tracking toward
+goal-oriented decision support and behavioral change. The system will combine
+transaction management, goal-based budgeting, behavioral pattern detection,
+anomaly-based interventions, scenario simulation, shared household finances,
+and an inspectable rule engine.
+
+The project emphasizes software engineering depth through secure financial
+data handling, scalable architecture, time-series analysis, forecasting,
+Monte-Carlo-style simulation, explainable recommendations, auditability, and
+strong automated testing of money-related calculations.
+
+By connecting everyday financial behavior with long-term goals and showing
+users the potential impact of alternative decisions, the system aims to help
+users understand not only \emph{where their money went}, but also
+\emph{what they can do next} to improve their financial outcomes.
 
 \end{document}
