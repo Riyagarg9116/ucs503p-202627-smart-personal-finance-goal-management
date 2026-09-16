@@ -4,7 +4,9 @@ import com.finance.backend.entity.Scenario;
 import com.finance.backend.entity.User;
 import com.finance.backend.service.ScenarioService;
 import com.finance.backend.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,15 +25,35 @@ public class ScenarioController {
         this.userService = userService;
     }
 
-    // Get all scenarios
+    // Get all scenarios of the currently logged-in user
     @GetMapping
     public List<Scenario> getAllScenarios() {
-        return scenarioService.getAllScenarios();
+
+        User currentUser = getCurrentUser();
+
+        return scenarioService.getAllScenarios()
+                .stream()
+                .filter(scenario ->
+                        scenario.getUser() != null &&
+                        scenario.getUser().getUserId()
+                                .equals(currentUser.getUserId()))
+                .toList();
     }
 
     // Get scenarios by user
     @GetMapping("/user/{userId}")
-    public List<Scenario> getScenariosByUser(@PathVariable Integer userId) {
+    public List<Scenario> getScenariosByUser(
+            @PathVariable Integer userId) {
+
+        User currentUser = getCurrentUser();
+
+        if (!currentUser.getUserId().equals(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only access your own scenarios"
+            );
+        }
+
         return scenarioService.getScenariosByUser(userId);
     }
 
@@ -39,8 +61,17 @@ public class ScenarioController {
     @GetMapping("/{id}")
     public Scenario getScenarioById(@PathVariable Integer id) {
 
-        return scenarioService.getScenarioById(id)
-                .orElseThrow(() -> new RuntimeException("Scenario not found"));
+        User currentUser = getCurrentUser();
+
+        Scenario scenario = scenarioService.getScenarioById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Scenario not found"
+                ));
+
+        checkScenarioOwnership(scenario, currentUser);
+
+        return scenario;
     }
 
     // Create scenario
@@ -49,10 +80,18 @@ public class ScenarioController {
             @PathVariable Integer userId,
             @RequestBody Scenario scenario) {
 
-        User user = userService.getUserById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User currentUser = getCurrentUser();
 
-        scenario.setUser(user);
+        // URL userId must match the logged-in user
+        if (!currentUser.getUserId().equals(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only create scenarios for yourself"
+            );
+        }
+
+        // Always assign the authenticated user
+        scenario.setUser(currentUser);
 
         return scenarioService.createScenario(scenario);
     }
@@ -63,6 +102,20 @@ public class ScenarioController {
             @PathVariable Integer id,
             @RequestBody Scenario scenario) {
 
+        User currentUser = getCurrentUser();
+
+        Scenario existingScenario = scenarioService
+                .getScenarioById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Scenario not found"
+                ));
+
+        checkScenarioOwnership(existingScenario, currentUser);
+
+        // Prevent changing ownership
+        scenario.setUser(currentUser);
+
         return scenarioService.updateScenario(id, scenario);
     }
 
@@ -70,8 +123,45 @@ public class ScenarioController {
     @DeleteMapping("/{id}")
     public String deleteScenario(@PathVariable Integer id) {
 
+        User currentUser = getCurrentUser();
+
+        Scenario existingScenario = scenarioService
+                .getScenarioById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Scenario not found"
+                ));
+
+        checkScenarioOwnership(existingScenario, currentUser);
+
         scenarioService.deleteScenario(id);
 
         return "Scenario deleted successfully";
+    }
+
+    // Check scenario ownership
+    private void checkScenarioOwnership(
+            Scenario scenario,
+            User currentUser) {
+
+        if (scenario.getUser() == null ||
+                !scenario.getUser().getUserId()
+                        .equals(currentUser.getUserId())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only access your own scenarios"
+            );
+        }
+    }
+
+    // Get currently logged-in user from JWT
+    private User getCurrentUser() {
+
+        return userService.getCurrentUser()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "User is not authenticated"
+                ));
     }
 }

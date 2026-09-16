@@ -4,7 +4,9 @@ import com.finance.backend.entity.Rule;
 import com.finance.backend.entity.User;
 import com.finance.backend.service.RuleService;
 import com.finance.backend.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,15 +25,35 @@ public class RuleController {
         this.userService = userService;
     }
 
-    // Get all rules
+    // Get all rules of the currently logged-in user
     @GetMapping
     public List<Rule> getAllRules() {
-        return ruleService.getAllRules();
+
+        User currentUser = getCurrentUser();
+
+        return ruleService.getAllRules()
+                .stream()
+                .filter(rule ->
+                        rule.getUser() != null &&
+                        rule.getUser().getUserId()
+                                .equals(currentUser.getUserId()))
+                .toList();
     }
 
     // Get rules by user
     @GetMapping("/user/{userId}")
-    public List<Rule> getRulesByUser(@PathVariable Integer userId) {
+    public List<Rule> getRulesByUser(
+            @PathVariable Integer userId) {
+
+        User currentUser = getCurrentUser();
+
+        if (!currentUser.getUserId().equals(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only access your own rules"
+            );
+        }
+
         return ruleService.getRulesByUser(userId);
     }
 
@@ -40,15 +62,32 @@ public class RuleController {
     public List<Rule> getRulesByActiveStatus(
             @PathVariable Boolean isActive) {
 
-        return ruleService.getRulesByActiveStatus(isActive);
+        User currentUser = getCurrentUser();
+
+        return ruleService.getRulesByActiveStatus(isActive)
+                .stream()
+                .filter(rule ->
+                        rule.getUser() != null &&
+                        rule.getUser().getUserId()
+                                .equals(currentUser.getUserId()))
+                .toList();
     }
 
     // Get rule by ID
     @GetMapping("/{id}")
     public Rule getRuleById(@PathVariable Integer id) {
 
-        return ruleService.getRuleById(id)
-                .orElseThrow(() -> new RuntimeException("Rule not found"));
+        User currentUser = getCurrentUser();
+
+        Rule rule = ruleService.getRuleById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Rule not found"
+                ));
+
+        checkRuleOwnership(rule, currentUser);
+
+        return rule;
     }
 
     // Create rule
@@ -57,10 +96,18 @@ public class RuleController {
             @PathVariable Integer userId,
             @RequestBody Rule rule) {
 
-        User user = userService.getUserById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User currentUser = getCurrentUser();
 
-        rule.setUser(user);
+        // URL userId must match logged-in user
+        if (!currentUser.getUserId().equals(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only create rules for yourself"
+            );
+        }
+
+        // Always use the authenticated user
+        rule.setUser(currentUser);
 
         return ruleService.createRule(rule);
     }
@@ -71,6 +118,19 @@ public class RuleController {
             @PathVariable Integer id,
             @RequestBody Rule rule) {
 
+        User currentUser = getCurrentUser();
+
+        Rule existingRule = ruleService.getRuleById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Rule not found"
+                ));
+
+        checkRuleOwnership(existingRule, currentUser);
+
+        // Prevent changing the rule owner
+        rule.setUser(currentUser);
+
         return ruleService.updateRule(id, rule);
     }
 
@@ -78,8 +138,44 @@ public class RuleController {
     @DeleteMapping("/{id}")
     public String deleteRule(@PathVariable Integer id) {
 
+        User currentUser = getCurrentUser();
+
+        Rule existingRule = ruleService.getRuleById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Rule not found"
+                ));
+
+        checkRuleOwnership(existingRule, currentUser);
+
         ruleService.deleteRule(id);
 
         return "Rule deleted successfully";
+    }
+
+    // Check rule ownership
+    private void checkRuleOwnership(
+            Rule rule,
+            User currentUser) {
+
+        if (rule.getUser() == null ||
+                !rule.getUser().getUserId()
+                        .equals(currentUser.getUserId())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only access your own rules"
+            );
+        }
+    }
+
+    // Get currently logged-in user from JWT
+    private User getCurrentUser() {
+
+        return userService.getCurrentUser()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "User is not authenticated"
+                ));
     }
 }
