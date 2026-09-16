@@ -1,10 +1,13 @@
 package com.finance.backend.controller;
 
+import com.finance.backend.dto.UserResponse;
 import com.finance.backend.entity.User;
 import com.finance.backend.service.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -16,36 +19,41 @@ public class UserController {
         this.userService = userService;
     }
 
-    // GET all users
+    // Get all users
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public List<UserResponse> getAllUsers() {
+
+        return userService.getAllUsers()
+                .stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
     }
 
-    // GET user by ID
+    // Get user by ID
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable Integer id) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Integer id) {
+
         return userService.getUserById(id)
-                .orElse(null);
+                .map(user -> ResponseEntity.ok(toUserResponse(user)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // CREATE new user
-    @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
-    }
-
-    // GET user by email
-    @GetMapping("/email/{email}")
-    public User getUserByEmail(@PathVariable String email) {
-        return userService.getUserByEmail(email)
-                .orElse(null);
-    }
-
-    // DELETE user
+    // Delete user
     @DeleteMapping("/{id}")
-    public String deleteUser(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
+
         userService.deleteUser(id);
-        return "User deleted successfully";
+
+        return ResponseEntity.noContent().build();
+    }
+
+    // Convert User entity to UserResponse DTO
+    private UserResponse toUserResponse(User user) {
+
+        return new UserResponse(
+                user.getUserId(),
+                user.getName(),
+                user.getEmail()
+        );
     }
 }
