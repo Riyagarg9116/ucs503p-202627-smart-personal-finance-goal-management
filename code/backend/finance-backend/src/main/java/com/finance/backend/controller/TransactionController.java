@@ -184,6 +184,71 @@ public class TransactionController {
 
         return "Transaction deleted successfully";
     }
+    @PutMapping("/{id}")
+public Transaction updateTransaction(
+        @PathVariable Integer id,
+        @RequestBody Transaction transactionDetails) {
+
+    User currentUser = getCurrentUser();
+
+    Transaction existingTransaction = transactionService
+            .getTransactionById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Transaction not found"
+            ));
+
+    // Make sure the transaction belongs to the logged-in user
+    checkTransactionOwnership(existingTransaction, currentUser);
+
+    // Validate the new category
+    if (transactionDetails.getCategory() != null) {
+
+        Category newCategory = categoryService
+                .getCategoryById(
+                        transactionDetails.getCategory().getCategoryId()
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Category not found"
+                ));
+
+        // Category must belong to current user
+        // or be a global category
+        if (newCategory.getUser() != null &&
+                !newCategory.getUser().getUserId()
+                        .equals(currentUser.getUserId())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only use your own categories"
+            );
+        }
+
+        existingTransaction.setCategory(newCategory);
+    }
+
+    existingTransaction.setAmount(
+            transactionDetails.getAmount()
+    );
+
+    existingTransaction.setTransactionType(
+            transactionDetails.getTransactionType()
+    );
+
+    existingTransaction.setDescription(
+            transactionDetails.getDescription()
+    );
+
+    existingTransaction.setTransactionDate(
+            transactionDetails.getTransactionDate()
+    );
+
+    return transactionService.updateTransaction(
+            id,
+            existingTransaction
+    );
+}
 
     // Check whether account belongs to current user
     private void checkAccountOwnership(

@@ -40,6 +40,19 @@ public class TransactionService {
     public Transaction createTransaction(Transaction transaction) {
         return transactionRepository.save(transaction);
     }
+    // Update transaction
+public Transaction updateTransaction(Integer id, Transaction transactionDetails) {
+
+    Transaction transaction = transactionRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+    transaction.setAmount(transactionDetails.getAmount());
+    transaction.setTransactionType(transactionDetails.getTransactionType());
+    transaction.setDescription(transactionDetails.getDescription());
+    transaction.setTransactionDate(transactionDetails.getTransactionDate());
+
+    return transactionRepository.save(transaction);
+}
 
     // Delete transaction
     public void deleteTransaction(Integer id) {
