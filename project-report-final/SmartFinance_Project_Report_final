@@ -1,0 +1,496 @@
+
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{tikz}
+\usepackage{ragged2e}
+\usepackage{lastpage}
+
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\setstretch{1.15}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Smart Personal Finance \& Goal Management System}
+\rhead{Project Report}
+\cfoot{\thepage}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\renewcommand{\contentsname}{\makebox[\textwidth][r]{Contents}}
+
+\begin{document}
+
+% ------------------------------------------------------------
+% TITLE PAGE
+% ------------------------------------------------------------
+\begin{titlepage}
+\centering
+\vspace*{0.5cm}
+
+{\Large\bfseries PROJECT REPORT\par}
+\vspace{0.6cm}
+
+{\LARGE\bfseries Smart Personal Finance \& Goal Management System\par}
+
+\vspace{0.7cm}
+{\large\bfseries Course Code: UCS503\par}
+\vspace{0.1cm}
+{\large\bfseries Course Title: Software Engineering\par}
+\vspace{0.1cm}
+{\large\bfseries Group: 3C41\par}
+
+\vspace{0.8cm}
+{\large\bfseries Submitted To\par}
+\vspace{0.15cm}
+{\Large Ms. Nisha Thakur\par}
+
+\vspace{0.8cm}
+{\large\bfseries Submitted By\par}
+\vspace{0.25cm}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{>{\bfseries}c l}
+\toprule
+\textbf{Roll Number} & \textbf{Name}\\
+\midrule
+1024030450 & Niharika\\
+1024030443 & Anushka Aggarwal\\
+1024030094 & Riya Garg\\
+1024030259 & Snehal Agarwal\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.65cm}
+{\large 2026\par}
+
+\vspace{0.35cm}
+\noindent\rule{\textwidth}{0.4pt}\par
+\vspace{0.12cm}
+{\small\bfseries THAPAR INSTITUTE OF ENGINEERING AND TECHNOLOGY, PATIALA\par}
+{\small MID SEMESTER EVALUATION\par}
+\vspace{0.08cm}
+{\small UCS503 -- SOFTWARE ENGINEERING\par}
+\end{titlepage}
+
+
+\tableofcontents
+\clearpage
+
+% ============================================================
+\chapter{Abstract}
+% ============================================================
+
+The Smart Personal Finance \& Goal Management System is a web-based application designed to help users manage income, expenses, budgets and financial goals in one place. The system combines transaction management with rule-based financial intelligence, anomaly detection, forecasting and scenario simulation.
+
+The proposed system follows a modular architecture with a React/Tailwind frontend, a REST API backend using Java and a MySQL database. The analytics layer uses transaction history to identify spending patterns, recurring behaviour and unusual transactions. A rule engine converts financial conditions into understandable alerts and recommendations, while Monte Carlo simulation is used for goal and scenario projections.
+
+The main objective is to provide users with a clear dashboard, structured financial records and explainable insights that can support better personal financial planning.
+
+% ============================================================
+\chapter{Introduction and Problem Statement}
+% ============================================================
+
+Managing personal finances often involves multiple disconnected activities such as recording transactions, checking account balances, setting budgets, tracking savings goals and evaluating future financial plans. A user may therefore have the data but still lack a simple way to understand spending behaviour and the effect of different financial decisions.
+
+The proposed Smart Personal Finance \& Goal Management System addresses this problem by combining core personal-finance management with automated analysis. The system provides a single interface for transactions, categories, budgets and goals and extends these features with behaviour analysis, anomaly detection, a rule engine, forecasting and scenario comparison.
+
+\section{Problem Statement}
+
+Users need a simple and structured system to:
+\begin{itemize}[leftmargin=*]
+    \item record and categorize income and expenses;
+    \item monitor balances and spending patterns;
+    \item create and track budgets;
+    \item create financial goals and monitor their progress;
+    \item identify unusual spending behaviour;
+    \item understand the reasons behind financial alerts;
+    \item compare possible financial scenarios; and
+    \item receive understandable recommendations based on their financial data.
+\end{itemize}
+
+\section{Objectives}
+
+The main objectives are:
+\begin{enumerate}[leftmargin=*]
+    \item Develop secure user registration and login using JWT authentication.
+    \item Provide transaction creation, viewing, updating, deletion and categorization.
+    \item Provide budget creation and monitoring.
+    \item Provide financial goal creation and progress tracking.
+    \item Generate monthly, category-wise and trend-based spending summaries.
+    \item Detect unusual or anomalous spending behaviour.
+    \item Implement a configurable rule engine for financial alerts.
+    \item Implement forecasting and Monte Carlo based scenario simulation.
+    \item Compare financial scenarios and generate explainable recommendations.
+    \item Provide a clean dashboard for balances, spending, goals and insights.
+    \item Test the application using unit, integration and property-based testing.
+\end{enumerate}
+
+\section{Scope of the System}
+
+\subsection{Core MVP Scope}
+The minimum viable product consists of:
+\begin{itemize}[leftmargin=*]
+    \item Register / Login
+    \item Dashboard
+    \item Add and manage transactions
+    \item Transaction categorization
+    \item Budget management
+    \item Goal creation and tracking
+\end{itemize}
+
+\subsection{Advanced Scope}
+The advanced feature flow consists of:
+\begin{itemize}[leftmargin=*]
+    \item Transaction history analysis
+    \item Behaviour analysis
+    \item Anomaly detection
+    \item Rule engine
+    \item Monte Carlo simulation
+    \item Scenario comparison
+    \item Smart recommendations
+\end{itemize}
+
+% ============================================================
+\chapter{System Workflow}
+% ============================================================
+
+The overall user workflow is:
+
+\begin{center}
+\textbf{Register/Login}
+$\rightarrow$
+\textbf{Dashboard}
+$\rightarrow$
+\textbf{Add Transaction}
+$\rightarrow$
+\textbf{Categorize Transaction}
+$\rightarrow$
+\textbf{Create Goal}
+$\rightarrow$
+\textbf{Track Goal}
+\end{center}
+
+The intelligent-analysis workflow is:
+
+\begin{center}
+\textbf{Transaction History}
+$\rightarrow$
+\textbf{Behaviour Analysis}
+$\rightarrow$
+\textbf{Anomaly Detection}
+$\rightarrow$
+\textbf{Rule Engine}
+$\rightarrow$
+\textbf{Monte Carlo Simulation}
+$\rightarrow$
+\textbf{Scenario Comparison}
+$\rightarrow$
+\textbf{Recommendation}
+\end{center}
+
+% ============================================================
+\chapter{Technology Stack}
+% ============================================================
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{p{4cm}p{9cm}}
+\toprule
+\textbf{Layer} & \textbf{Technology / Tools}\\
+\midrule
+Frontend & React, Tailwind CSS\\
+Backend & REST API, Java\\
+Database & MySQL; synthetic financial data for the ML/analytics part\\
+Authentication & JWT\\
+Data Analysis & Pandas, NumPy\\
+Testing & Pytest, Hypothesis, integration and property-based tests\\
+DevOps & Docker, GitHub Actions\\
+Documentation & API documentation, README and project report\\
+\bottomrule
+\end{tabular}
+\caption{Technology stack}
+\end{table}
+
+% ============================================================
+\chapter{Functional Modules}
+% ============================================================
+
+\section{Authentication Module}
+The authentication module supports registration and login. JWT-based authentication is used so that authenticated users can access protected financial data.
+
+\section{Transaction Module}
+Users can add, view, update and delete transactions. Transactions can be categorized so that spending can later be analyzed by category and time period.
+
+\section{Budget Module}
+Users can define budgets for relevant spending categories and monitor whether their actual spending remains within the selected limits.
+
+\section{Goal Module}
+Users can create financial goals and track progress towards them. Goal information is also used by the analysis and scenario modules.
+
+\section{Analytics Module}
+The analytics layer calculates financial metrics such as monthly spending, category-wise spending, average spending, savings and spending trends. It also identifies recurring patterns.
+
+\section{Anomaly Detection}
+The system checks transaction and spending behaviour for unusual changes. For example, an increase in spending beyond a defined threshold can be treated as a possible anomaly.
+
+\section{Rule Engine}
+The rule engine converts financial conditions into explainable actions. Example rules include:
+\begin{itemize}[leftmargin=*]
+    \item If Food spending $>$ Food budget, generate a warning.
+    \item If spending increases by more than 20\%, detect an anomaly.
+    \item If goal probability $<$ 70\%, suggest increasing savings.
+\end{itemize}
+
+Users can view, edit, enable or disable rules.
+
+\section{Scenario Simulation}
+The system can compare possible financial scenarios. Monte Carlo simulation can produce probability ranges such as P10, P50 and P90 projections for future outcomes.
+
+\section{Recommendation Module}
+Recommendations are generated from financial metrics, rules, anomalies and scenario results. The system is intended to make recommendations explainable by showing the relevant rule or financial condition.
+
+% ============================================================
+\chapter{Database and API Design}
+% ============================================================
+
+\section{Database Design}
+
+The proposed database contains the following major tables:
+
+\begin{longtable}{p{4cm}p{9cm}}
+\toprule
+\textbf{Table} & \textbf{Purpose}\\
+\midrule
+users & User account and authentication information\\
+accounts & Financial account information\\
+transactions & Income and expense records\\
+categories & Transaction categories\\
+budgets & User budget information\\
+goals & Financial goals and progress\\
+rules & Configurable financial rules\\
+anomalies & Detected unusual spending events\\
+scenarios & Saved financial scenarios\\
+households & Household-level financial grouping\\
+household\_members & Users belonging to a household\\
+approvals & Approval records for relevant household actions\\
+audit\_logs & Records of important system actions\\
+\bottomrule
+\end{longtable}
+
+\section{API Design}
+
+Representative API endpoints include:
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{4cm}p{8cm}}
+\toprule
+\textbf{Endpoint} & \textbf{Purpose}\\
+\midrule
+POST /auth/register & Register a new user\\
+POST /auth/login & Authenticate a user\\
+GET /transactions & Retrieve transactions\\
+POST /transactions & Add a transaction\\
+PUT /transactions & Update a transaction\\
+DELETE /transactions & Delete a transaction\\
+GET /goals & Retrieve goals\\
+POST /goals & Create a goal\\
+PUT /goals & Update a goal\\
+GET /budgets & Retrieve budgets\\
+POST /budgets & Create a budget\\
+\bottomrule
+\end{tabular}
+\caption{Representative API endpoints}
+\end{table}
+
+% ============================================================
+\chapter{Frontend and Security}
+% ============================================================
+
+\section{Frontend Screens}
+
+The proposed frontend contains:
+\begin{itemize}[leftmargin=*]
+    \item Login / Register
+    \item Dashboard
+    \item Transactions
+    \item Budget
+    \item Goals
+    \item Scenario Planning
+    \item Smart Insights
+    \item Rules
+    \item Profile
+\end{itemize}
+
+The dashboard presents balance, income, expenses, savings, spending charts, goal progress, smart recommendations and anomaly alerts.
+
+\section{Security and Data Handling}
+
+The system includes:
+\begin{itemize}[leftmargin=*]
+    \item JWT authentication;
+    \item user-level access control;
+    \item input validation;
+    \item protected backend endpoints;
+    \item secure handling of financial information; and
+    \item audit logging for relevant system actions.
+\end{itemize}
+
+% ============================================================
+\chapter{UML Diagrams}
+% ============================================================
+
+% The collaboration diagram is kept with the UML chapter heading on
+% the same page so that the page is not left mostly blank.
+
+\begin{center}
+{\Large\bfseries 8.1 Collaboration Diagram\par}
+\vspace{0.25cm}
+\includegraphics[width=\textwidth,height=0.52\textheight,keepaspectratio]{collaboration.jpeg}
+\vspace{0.15cm}
+
+\textbf{Figure 8.1: Collaboration Diagram}
+\end{center}
+
+\clearpage
+\thispagestyle{plain}
+\begin{center}
+{\Large\bfseries 8.2 Sequence Diagram\par}
+\vspace{0.35cm}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{sequence.jpeg}
+\vspace{0.2cm}
+
+\textbf{Figure 8.2: Sequence Diagram -- Smart Personal Finance \& Goal Management System}
+\end{center}
+
+\clearpage
+\thispagestyle{plain}
+\begin{center}
+{\Large\bfseries 8.3 Activity Diagram\par}
+\vspace{0.35cm}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{activity.jpeg}
+\vspace{0.2cm}
+
+\textbf{Figure 8.3: Activity Diagram}
+\end{center}
+
+\clearpage
+\thispagestyle{plain}
+\begin{center}
+{\Large\bfseries 8.4 Swimlane / Partition Activity Diagram\par}
+\vspace{0.35cm}
+\includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{swinglane.jpeg}
+\vspace{0.2cm}
+
+\textbf{Figure 8.4: Swimlane Activity Diagram}
+\end{center}
+
+\clearpage
+\thispagestyle{plain}
+\begin{center}
+{\Large\bfseries 8.5 Use Case Diagram\par}
+\vspace{0.35cm}
+\includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{usecase.jpeg}
+\vspace{0.2cm}
+
+\textbf{Figure 8.5: Use Case Diagram}
+\end{center}
+
+% ============================================================
+\chapter{Team Responsibilities}
+% ============================================================
+
+\begin{longtable}{p{3.2cm}p{9.8cm}}
+\toprule
+\textbf{Member} & \textbf{Responsibility}\\
+\midrule
+Riya Garg &
+Backend and Database Lead: REST API, Java, MySQL, JWT authentication, APIs, database design, transaction/goal/budget modules, ER diagram, API documentation and backend architecture.\\
+Niharika &
+ML and Financial Intelligence Lead: Pandas/NumPy, transaction analysis, spending-habit detection, anomaly detection, forecasting, Monte Carlo simulation, scenario comparison and related algorithm documentation.\\
+Anushka Aggarwal &
+Frontend/UI/UX Lead: React, Tailwind CSS, dashboard, transactions, goals, budget, charts, scenario interface, insights interface, prototype/wireframes and user flow.\\
+Snehal Agarwal &
+QA/DevOps and Rules Lead: rule engine, Pytest, Hypothesis, integration/property testing, GitHub Actions, Docker, code quality, README, testing and risk documentation.\\
+All Members &
+Architecture, integration, final report, presentation and final project integration.\\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\chapter{Development Plan}
+% ============================================================
+
+\begin{longtable}{p{2.5cm}p{10.5cm}}
+\toprule
+\textbf{Period} & \textbf{Planned Work}\\
+\midrule
+Week 1 &
+Finalize architecture, technology stack, features and responsibilities. Riya works on backend/database/ER design; Niharika prepares transaction data and financial metrics; Anushka prepares prototype and dashboard wireframe; Snehal prepares Gantt, requirements, GitHub workflow and testing plan.\\
+Weeks 2--3 &
+Implement MVP flow: login, dashboard, transactions, categories, budget and goals.\\
+Weeks 4--6 &
+Implement smart features: transaction-history analysis, behaviour analysis, anomaly detection, rule engine, Monte Carlo simulation, scenario comparison and recommendations.\\
+Weeks 7--8 &
+Integration, bug fixing, testing, security checks, UI/chart refinement, documentation, screenshots, final report, presentation and project demonstration.\\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+\chapter{Testing Strategy}
+% ============================================================
+
+Testing is planned at multiple levels:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Unit testing:} individual backend functions, rules and calculations.
+    \item \textbf{Integration testing:} interaction between frontend, backend and database.
+    \item \textbf{Property-based testing:} validation of financial rules and calculations using Hypothesis.
+    \item \textbf{Authentication testing:} login, protected routes and user-access control.
+    \item \textbf{API testing:} validation of request and response behaviour.
+    \item \textbf{Regression testing:} repeated verification after feature integration.
+    \item \textbf{CI testing:} automated checks through GitHub Actions.
+\end{itemize}
+
+% ============================================================
+\chapter{Expected Outcome}
+% ============================================================
+
+The expected outcome is a working web application that combines personal-finance record keeping with financial intelligence. A user should be able to record transactions, monitor budgets and goals, inspect spending patterns, receive alerts about unusual behaviour and compare possible financial scenarios through a single dashboard.
+
+The system is also designed to keep recommendations understandable by connecting them to financial conditions and configurable rules rather than presenting unexplained outputs.
+
+% ============================================================
+\chapter{Conclusion}
+% ============================================================
+
+The Smart Personal Finance \& Goal Management System integrates personal financial management, analytics and decision-support features into one application. The proposed architecture separates the frontend, backend, database and intelligence components, allowing the team to develop and test the system in parallel.
+
+The project begins with a focused MVP and then extends it with anomaly detection, rule-based insights, forecasting, Monte Carlo simulation and scenario comparison. The combination of these modules is intended to provide a structured and explainable approach to personal financial planning.
+
+\end{document}
