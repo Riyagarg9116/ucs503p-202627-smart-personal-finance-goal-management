@@ -42,12 +42,37 @@ public class AuditLogService {
     }
 
     // Create audit log
-    public AuditLog createAuditLog(AuditLog auditLog) {
-        return auditLogRepository.save(auditLog);
+  
+public AuditLog createAuditLog(AuditLog auditLog) {
+    validateAuditLog(auditLog);
+
+    auditLog.setAction(auditLog.getAction().trim());
+
+    if (auditLog.getCreatedAt() == null) {
+        auditLog.setCreatedAt(java.time.LocalDateTime.now());
     }
+
+    return auditLogRepository.save(auditLog);
+}
+
 
     // Delete audit log
     public void deleteAuditLog(Integer id) {
         auditLogRepository.deleteById(id);
     }
+
+    
+private void validateAuditLog(AuditLog auditLog) {
+    if (auditLog == null) {
+        throw new IllegalArgumentException(
+                "Audit log cannot be empty");
+    }
+
+    if (auditLog.getAction() == null
+            || auditLog.getAction().isBlank()) {
+        throw new IllegalArgumentException(
+                "Audit log action cannot be blank");
+    }
+}
+
 }

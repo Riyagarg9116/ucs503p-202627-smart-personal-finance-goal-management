@@ -32,24 +32,59 @@ public class CategoryService {
     }
 
     // Create category
-    public Category createCategory(Category category) {
-        return categoryRepository.save(category);
-    }
+    
+public Category createCategory(Category category) {
+    validateCategory(category);
+    category.setCategoryName(category.getCategoryName().trim());
+    category.setCategoryType(category.getCategoryType().trim());
+
+    return categoryRepository.save(category);
+}
+
 
     // Update category
-    public Category updateCategory(Integer id, Category categoryDetails) {
+    
+public Category updateCategory(
+        Integer id, Category categoryDetails) {
 
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+    validateCategory(categoryDetails);
 
-        category.setCategoryName(categoryDetails.getCategoryName());
-        category.setCategoryType(categoryDetails.getCategoryType());
+    Category category = categoryRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Category not found"));
 
-        return categoryRepository.save(category);
-    }
+    category.setCategoryName(
+            categoryDetails.getCategoryName().trim());
+    category.setCategoryType(
+            categoryDetails.getCategoryType().trim());
+
+    return categoryRepository.save(category);
+}
+
 
     // Delete category
     public void deleteCategory(Integer id) {
         categoryRepository.deleteById(id);
     }
+
+    
+private void validateCategory(Category category) {
+    if (category == null) {
+        throw new IllegalArgumentException(
+                "Category cannot be empty");
+    }
+
+    if (category.getCategoryName() == null
+            || category.getCategoryName().isBlank()) {
+        throw new IllegalArgumentException(
+                "Category name cannot be blank");
+    }
+
+    if (category.getCategoryType() == null
+            || category.getCategoryType().isBlank()) {
+        throw new IllegalArgumentException(
+                "Category type cannot be blank");
+    }
+}
+
 }

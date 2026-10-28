@@ -32,26 +32,48 @@ public class ScenarioService {
     }
 
     // Create scenario
-    public Scenario createScenario(Scenario scenario) {
-        return scenarioRepository.save(scenario);
-    }
+    
+public Scenario createScenario(Scenario scenario) {
+    validateScenario(scenario);
+    scenario.setScenarioName(scenario.getScenarioName().trim());
+    return scenarioRepository.save(scenario);
+}
+
 
     // Update scenario
-    public Scenario updateScenario(Integer id, Scenario scenarioDetails) {
+    
+public Scenario updateScenario(Integer id, Scenario scenarioDetails) {
 
-        Scenario scenario = scenarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Scenario not found"));
+    validateScenario(scenarioDetails);
 
-        scenario.setScenarioName(scenarioDetails.getScenarioName());
-        scenario.setDescription(scenarioDetails.getDescription());
-        scenario.setInputData(scenarioDetails.getInputData());
-        scenario.setResultData(scenarioDetails.getResultData());
+    Scenario scenario = scenarioRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Scenario not found"));
 
-        return scenarioRepository.save(scenario);
-    }
+    scenario.setScenarioName(scenarioDetails.getScenarioName().trim());
+    scenario.setDescription(scenarioDetails.getDescription());
+    scenario.setInputData(scenarioDetails.getInputData());
+    scenario.setResultData(scenarioDetails.getResultData());
+
+    return scenarioRepository.save(scenario);
+}
+
 
     // Delete scenario
     public void deleteScenario(Integer id) {
         scenarioRepository.deleteById(id);
     }
+ 
+private void validateScenario(Scenario scenario) {
+    if (scenario == null) {
+        throw new IllegalArgumentException(
+                "Scenario cannot be empty");
+    }
+
+    if (scenario.getScenarioName() == null
+            || scenario.getScenarioName().isBlank()) {
+        throw new IllegalArgumentException(
+                "Scenario name cannot be blank");
+    }
+}
+
 }

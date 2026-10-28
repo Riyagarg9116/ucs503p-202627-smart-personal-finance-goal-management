@@ -26,19 +26,14 @@ public class RuleController {
     }
 
     // Get all rules of the currently logged-in user
-    @GetMapping
-    public List<Rule> getAllRules() {
+    
+@GetMapping
+public List<Rule> getAllRules() {
+    User currentUser = getCurrentUser();
 
-        User currentUser = getCurrentUser();
+    return ruleService.getRulesByUser(currentUser.getUserId());
+}
 
-        return ruleService.getAllRules()
-                .stream()
-                .filter(rule ->
-                        rule.getUser() != null &&
-                        rule.getUser().getUserId()
-                                .equals(currentUser.getUserId()))
-                .toList();
-    }
 
     // Get rules by user
     @GetMapping("/user/{userId}")
@@ -58,20 +53,17 @@ public class RuleController {
     }
 
     // Get active/inactive rules
-    @GetMapping("/active/{isActive}")
-    public List<Rule> getRulesByActiveStatus(
-            @PathVariable Boolean isActive) {
+    
+@GetMapping("/active/{isActive}")
+public List<Rule> getRulesByActiveStatus(
+        @PathVariable Boolean isActive) {
 
-        User currentUser = getCurrentUser();
+    User currentUser = getCurrentUser();
 
-        return ruleService.getRulesByActiveStatus(isActive)
-                .stream()
-                .filter(rule ->
-                        rule.getUser() != null &&
-                        rule.getUser().getUserId()
-                                .equals(currentUser.getUserId()))
-                .toList();
-    }
+    return ruleService.getRulesByUserAndActiveStatus(
+            currentUser.getUserId(), isActive);
+}
+
 
     // Get rule by ID
     @GetMapping("/{id}")

@@ -20,6 +20,10 @@ public class TransactionService {
     public List<Transaction> getAllTransactions() {
         return transactionRepository.findAll();
     }
+    // Get transactions belonging to a specific user
+public List<Transaction> getTransactionsByUserEmail(String email) {
+    return transactionRepository.findByAccountUserEmailIgnoreCase(email);
+}
 
     // Get transaction by ID
     public Optional<Transaction> getTransactionById(Integer id) {

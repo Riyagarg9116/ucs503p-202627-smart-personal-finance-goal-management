@@ -30,15 +30,29 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    public User createUser(User user) {
+    
+public User createUser(User user) {
 
-        // Convert plain password into BCrypt hash
-        user.setPasswordHash(
-                passwordEncoder.encode(user.getPasswordHash())
-        );
-
-        return userRepository.save(user);
+    if (user == null
+            || user.getPasswordHash() == null
+            || user.getPasswordHash().isBlank()) {
+        throw new IllegalArgumentException(
+                "Password cannot be blank");
     }
+
+    if (user.getEmail() == null
+            || user.getEmail().isBlank()) {
+        throw new IllegalArgumentException(
+                "Email cannot be blank");
+    }
+
+    user.setPasswordHash(
+            passwordEncoder.encode(user.getPasswordHash())
+    );
+
+    return userRepository.save(user);
+}
+
 
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
@@ -49,18 +63,26 @@ public class UserService {
     }
 
     // Get the user associated with the currently logged-in JWT
-    public Optional<User> getCurrentUser() {
+   
+public Optional<User> getCurrentUser() {
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+    Authentication authentication =
+            SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
-            return Optional.empty();
-        }
-
-        String email = authentication.getName();
-
-        return userRepository.findByEmail(email);
+    if (authentication == null
+            || !authentication.isAuthenticated()
+            || authentication instanceof
+                    org.springframework.security.authentication.AnonymousAuthenticationToken) {
+        return Optional.empty();
     }
+
+    String email = authentication.getName();
+
+    if (email == null || email.isBlank()) {
+        return Optional.empty();
+    }
+
+    return userRepository.findByEmail(email);
+}
+
 }

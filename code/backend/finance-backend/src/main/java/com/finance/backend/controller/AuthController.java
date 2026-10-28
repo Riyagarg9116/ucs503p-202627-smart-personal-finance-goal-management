@@ -1,115 +1,161 @@
+
 package com.finance.backend.controller;
 
+import com.finance.backend.entity.Account;
+import com.finance.backend.entity.Category;
 import com.finance.backend.entity.User;
+import com.finance.backend.service.AccountService;
+import com.finance.backend.service.CategoryService;
+import com.finance.backend.service.JwtService;
 import com.finance.backend.service.UserService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import com.finance.backend.service.JwtService;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserService userService;
+    private final AccountService accountService;
+    private final CategoryService categoryService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthController(
-        UserService userService,
-        PasswordEncoder passwordEncoder,
-        JwtService jwtService) {
+            UserService userService,
+            AccountService accountService,
+            CategoryService categoryService,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
 
-    this.userService = userService;
-    this.passwordEncoder = passwordEncoder;
-    this.jwtService = jwtService;
-}
+        this.userService = userService;
+        this.accountService = accountService;
+        this.categoryService = categoryService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+    }
 
     // REGISTER
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(
+            @RequestBody RegisterRequest request) {
 
-        // Check if email already exists
-        if (userService.getUserByEmail(request.email()).isPresent()) {
+        if (request.name() == null || request.name().isBlank()
+                || request.email() == null || request.email().isBlank()
+                || request.password() == null || request.password().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body("Name, email and password are required");
+        }
+
+        String email = request.email().trim();
+
+        if (userService.getUserByEmail(email).isPresent()) {
             return ResponseEntity.badRequest()
                     .body("Email already registered");
         }
 
         User user = new User();
-        user.setName(request.name());
-        user.setEmail(request.email());
-
-        // UserService will convert this password into BCrypt hash
+        user.setName(request.name().trim());
+        user.setEmail(email);
         user.setPasswordHash(request.password());
 
+        // UserService hashes the password and saves the user.
         User savedUser = userService.createUser(user);
 
-        String token = jwtService.generateToken(user.getEmail());
+        // Create a default financial account for this user.
+        Account account = new Account();
+        account.setUser(savedUser);
+        account.setAccountName("My Account");
+        account.setAccountType("bank");
+        account.setBalance(BigDecimal.ZERO);
+        accountService.createAccount(account);
 
-return ResponseEntity.ok(
-        new AuthResponse(
-                "Registration successful",
-                user.getUserId(),
-                user.getName(),
-                user.getEmail(),
-                token
-        )
-);
+        // Create starter categories belonging to this user.
+        createCategory(savedUser, "Food", "expense");
+        createCategory(savedUser, "Shopping", "expense");
+        createCategory(savedUser, "Travel", "expense");
+        createCategory(savedUser, "Entertainment", "expense");
+        createCategory(savedUser, "Salary", "income");
+
+        String token = jwtService.generateToken(savedUser.getEmail());
+
+        return ResponseEntity.ok(
+                new AuthResponse(
+                        "Registration successful",
+                        savedUser.getUserId(),
+                        savedUser.getName(),
+                        savedUser.getEmail(),
+                        token
+                )
+        );
+    }
+
+    private void createCategory(
+            User user, String name, String type) {
+
+        Category category = new Category();
+        category.setUser(user);
+        category.setCategoryName(name);
+        category.setCategoryType(type);
+        categoryService.createCategory(category);
     }
 
     // LOGIN
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest request) {
 
-        User user = userService.getUserByEmail(request.email())
+        if (request.email() == null || request.password() == null) {
+            return ResponseEntity.status(401)
+                    .body("Invalid email or password");
+        }
+
+        User user = userService
+                .getUserByEmail(request.email().trim())
                 .orElse(null);
 
-        if (user == null) {
+        if (user == null
+                || !passwordEncoder.matches(
+                        request.password(),
+                        user.getPasswordHash())) {
             return ResponseEntity.status(401)
                     .body("Invalid email or password");
         }
 
-        // Compare entered password with BCrypt hash stored in database
-        if (!passwordEncoder.matches(
-                request.password(),
-                user.getPasswordHash())) {
+        String token = jwtService.generateToken(user.getEmail());
 
-            return ResponseEntity.status(401)
-                    .body("Invalid email or password");
-        }
-
-       String token = jwtService.generateToken(user.getEmail());
-
-return ResponseEntity.ok(
-        new AuthResponse(
-                "Login successful",
-                user.getUserId(),
-                user.getName(),
-                user.getEmail(),
-                token
-        )
-);
+        return ResponseEntity.ok(
+                new AuthResponse(
+                        "Login successful",
+                        user.getUserId(),
+                        user.getName(),
+                        user.getEmail(),
+                        token
+                )
+        );
     }
 
-    // Request for registration
     public record RegisterRequest(
             String name,
             String email,
-            String password
-    ) {}
+            String password) {
+    }
 
-    // Request for login
     public record LoginRequest(
             String email,
-            String password
-    ) {}
+            String password) {
+    }
 
-    // Response sent after successful login/register
-   public record AuthResponse(
-        String message,
-        Integer userId,
-        String name,
-        String email,
-        String token
-) {}
+    public record AuthResponse(
+            String message,
+            Integer userId,
+            String name,
+            String email,
+            String token) {
+    }
 }

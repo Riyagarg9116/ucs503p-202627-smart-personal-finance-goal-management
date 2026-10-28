@@ -32,25 +32,62 @@ public class AccountService {
     }
 
     // Create account
-    public Account createAccount(Account account) {
-        return accountRepository.save(account);
-    }
+    
+public Account createAccount(Account account) {
+    validateAccount(account);
+
+    account.setAccountName(account.getAccountName().trim());
+
+    return accountRepository.save(account);
+}
+
 
     // Update account
-    public Account updateAccount(Integer id, Account accountDetails) {
+    
+public Account updateAccount(Integer id, Account accountDetails) {
 
-        Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+    validateAccount(accountDetails);
 
-        account.setAccountName(accountDetails.getAccountName());
-        account.setAccountType(accountDetails.getAccountType());
-        account.setBalance(accountDetails.getBalance());
+    Account account = accountRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        return accountRepository.save(account);
-    }
+    account.setAccountName(accountDetails.getAccountName().trim());
+    account.setAccountType(accountDetails.getAccountType());
+    account.setBalance(accountDetails.getBalance());
+
+    return accountRepository.save(account);
+}
+
 
     // Delete account
     public void deleteAccount(Integer id) {
         accountRepository.deleteById(id);
     }
+
+    
+private void validateAccount(Account account) {
+    if (account == null) {
+        throw new IllegalArgumentException(
+                "Account cannot be empty");
+    }
+
+    if (account.getAccountName() == null
+            || account.getAccountName().isBlank()) {
+        throw new IllegalArgumentException(
+                "Account name cannot be blank");
+    }
+
+    if (account.getAccountType() == null
+            || account.getAccountType().isBlank()) {
+        throw new IllegalArgumentException(
+                "Account type cannot be blank");
+    }
+
+    if (account.getBalance() != null
+            && account.getBalance().signum() < 0) {
+        throw new IllegalArgumentException(
+                "Account balance cannot be negative");
+    }
+}
+
 }

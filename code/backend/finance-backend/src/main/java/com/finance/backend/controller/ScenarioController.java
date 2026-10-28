@@ -26,19 +26,15 @@ public class ScenarioController {
     }
 
     // Get all scenarios of the currently logged-in user
-    @GetMapping
-    public List<Scenario> getAllScenarios() {
+    
+@GetMapping
+public List<Scenario> getAllScenarios() {
+    User currentUser = getCurrentUser();
 
-        User currentUser = getCurrentUser();
+    return scenarioService.getScenariosByUser(
+            currentUser.getUserId());
+}
 
-        return scenarioService.getAllScenarios()
-                .stream()
-                .filter(scenario ->
-                        scenario.getUser() != null &&
-                        scenario.getUser().getUserId()
-                                .equals(currentUser.getUserId()))
-                .toList();
-    }
 
     // Get scenarios by user
     @GetMapping("/user/{userId}")
