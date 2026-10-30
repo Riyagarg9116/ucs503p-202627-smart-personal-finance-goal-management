@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Plus,
   Pencil,
@@ -11,29 +11,79 @@ import {
 } from "lucide-react"
 
 function Scenarios() {
-  const [scenarios, setScenarios] = useState([
-    {
-      id: 1,
-      name: "Current Plan",
-      income: 45000,
-      expenses: 18650,
-      months: 6,
-    },
-    {
-      id: 2,
-      name: "Save More",
-      income: 45000,
-      expenses: 15000,
-      months: 6,
-    },
-    {
-      id: 3,
-      name: "Higher Spending",
-      income: 45000,
-      expenses: 22000,
-      months: 6,
-    },
-  ])
+  
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  
+  useEffect(() => {
+    const fetchScenarios = async () => {
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        setError("Please log in again.")
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError("")
+
+        const response = await fetch(
+          "http://localhost:8080/api/scenarios",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error("Could not load your scenarios.")
+        }
+
+        const data = await response.json()
+
+        const loadedScenarios = data.map((item) => {
+          let input = {}
+          let result = {}
+
+          try {
+            input = item.inputData ? JSON.parse(item.inputData) : {}
+          } catch {
+            input = {}
+          }
+
+          try {
+            result = item.resultData ? JSON.parse(item.resultData) : {}
+          } catch {
+            result = {}
+          }
+
+          return {
+            id: item.scenarioId,
+            name: item.scenarioName,
+            income: Number(input.income) || 0,
+            expenses: Number(input.expenses) || 0,
+            months: Number(input.months) || 6,
+          }
+        })
+
+        setScenarios(loadedScenarios)
+      } catch (err) {
+        setError(err.message || "Something went wrong.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchScenarios()
+  }, [])
+
+
+ 
+  const [scenarios, setScenarios] = useState([])
+
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -61,56 +111,107 @@ function Scenarios() {
     setShowForm(false)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  
+const handleSubmit = async (e) => {
+  e.preventDefault()
 
-    if (
-      !formData.name ||
-      !formData.income ||
-      !formData.expenses ||
-      !formData.months
-    ) {
-      return
+  if (
+    !formData.name.trim() ||
+    formData.income === "" ||
+    formData.expenses === "" ||
+    formData.months === ""
+  ) {
+    alert("Please fill in all fields.")
+    return
+  }
+
+  const income = Number(formData.income)
+  const expenses = Number(formData.expenses)
+  const months = Number(formData.months)
+
+  if (
+    !Number.isFinite(income) ||
+    !Number.isFinite(expenses) ||
+    !Number.isFinite(months) ||
+    income <= 0 ||
+    expenses < 0 ||
+    months <= 0
+  ) {
+    alert("Enter valid income, expenses, and projection period.")
+    return
+  }
+
+  const token = localStorage.getItem("token")
+  const user = JSON.parse(localStorage.getItem("user") || "null")
+
+  if (!token || !user?.userId) {
+    alert("Please log in again.")
+    return
+  }
+
+  const monthlySavings = income - expenses
+  const scenarioData = {
+    name: formData.name.trim(),
+    income,
+    expenses,
+    months,
+  }
+
+  const payload = {
+    scenarioName: scenarioData.name,
+    description: `Financial projection for ${months} months`,
+    inputData: JSON.stringify({ income, expenses, months }),
+    resultData: JSON.stringify({
+      monthlySavings,
+      futureSavings: monthlySavings * months,
+      savingsRate: Math.round((monthlySavings / income) * 100),
+    }),
+  }
+
+  try {
+    const response = await fetch(
+      editingId
+        ? `http://localhost:8080/api/scenarios/${editingId}`
+        : `http://localhost:8080/api/scenarios/user/${user.userId}`,
+      {
+        method: editingId ? "PUT" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    )
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Could not save the scenario.")
     }
 
-    const income = Number(formData.income)
-    const expenses = Number(formData.expenses)
-    const months = Number(formData.months)
+    const saved = await response.json()
 
-    if (income <= 0 || expenses < 0 || months <= 0) {
-      return
-    }
-
-    const scenarioData = {
-      name: formData.name,
+    const savedScenario = {
+      id: saved.scenarioId,
+      name: saved.scenarioName,
       income,
       expenses,
       months,
     }
 
-    if (editingId) {
-      setScenarios(
-        scenarios.map((scenario) =>
-          scenario.id === editingId
-            ? {
-                ...scenario,
-                ...scenarioData,
-              }
-            : scenario
-        )
-      )
-    } else {
-      setScenarios([
-        ...scenarios,
-        {
-          id: Date.now(),
-          ...scenarioData,
-        },
-      ])
-    }
+    setScenarios((previous) =>
+      editingId
+        ? previous.map((item) =>
+            item.id === editingId ? savedScenario : item
+          )
+        : [...previous, savedScenario]
+    )
 
     resetForm()
+  } catch (err) {
+    alert(err.message || "Could not save the scenario.")
   }
+}
+
 
   const handleEdit = (scenario) => {
     setEditingId(scenario.id)
@@ -125,11 +226,45 @@ function Scenarios() {
     setShowForm(true)
   }
 
-  const handleDelete = (id) => {
-    setScenarios(
-      scenarios.filter((scenario) => scenario.id !== id)
-    )
+ 
+const handleDelete = async (id) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this scenario?"
+  )
+
+  if (!confirmed) return
+
+  const token = localStorage.getItem("token")
+
+  if (!token) {
+    alert("Please log in again.")
+    return
   }
+
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/scenarios/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Could not delete scenario.")
+    }
+
+    setScenarios((previous) =>
+      previous.filter((scenario) => scenario.id !== id)
+    )
+  } catch (err) {
+    alert(err.message || "Could not delete scenario.")
+  }
+}
+
 
   const scenarioCalculations = scenarios.map((scenario) => {
     const monthlySavings =
@@ -169,6 +304,17 @@ function Scenarios() {
 
   return (
     <div className="min-h-screen bg-[#F8E8F0] p-8">
+      {loading && (
+  <p className="mb-4 text-center text-[#644984]">
+    Loading your scenarios...
+  </p>
+)}
+
+{error && (
+  <p className="mb-4 rounded-xl bg-white p-4 text-center text-red-600">
+    {error}
+  </p>
+)}
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>

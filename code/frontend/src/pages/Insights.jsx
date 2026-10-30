@@ -1,3 +1,5 @@
+
+import { useEffect, useState } from "react"
 import {
   Lightbulb,
   TrendingUp,
@@ -25,32 +27,171 @@ import {
 } from "recharts"
 
 function Insights() {
-  const categoryData = [
-    { name: "Food", amount: 4500 },
-    { name: "Bills", amount: 4100 },
-    { name: "Shopping", amount: 3200 },
-    { name: "Transport", amount: 2800 },
-    { name: "Entertainment", amount: 1800 },
-    { name: "Other", amount: 2250 },
-  ]
+  const [transactions, setTransactions] = useState([])
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState("")
+const [mlInsights, setMlInsights] = useState(null);
+const [mlError, setMlError] = useState("");
+useEffect(() => {
+  const fetchTransactions = async () => {
+    const token = localStorage.getItem("token")
 
-  const monthlyData = [
-    { month: "Apr", amount: 14500 },
-    { month: "May", amount: 16200 },
-    { month: "Jun", amount: 13800 },
-    { month: "Jul", amount: 17100 },
-    { month: "Aug", amount: 15400 },
-    { month: "Sep", amount: 18650 },
-  ]
+    if (!token) {
+      setError("Please log in again.")
+      setLoading(false)
+      return
+    }
 
-  const pieData = [
-    { name: "Food", value: 4500 },
-    { name: "Bills", value: 4100 },
-    { name: "Shopping", value: 3200 },
-    { name: "Transport", value: 2800 },
-    { name: "Entertainment", value: 1800 },
-    { name: "Other", value: 2250 },
-  ]
+    try {
+      setLoading(true)
+      setError("")
+
+      const response = await fetch(
+        "http://localhost:8080/api/transactions",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Could not load transactions.")
+      }
+
+      const data = await response.json()
+      setTransactions(data)
+    } catch (err) {
+      setError(err.message || "Something went wrong.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchTransactions()
+}, [])
+useEffect(() => {
+  const fetchMLInsights = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setMlError("Please log in again.");
+      return;
+    }
+
+    try {
+      setMlError("");
+
+      const response = await fetch(
+        "http://localhost:8080/api/ml/insights",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `ML insights request failed: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      setMlInsights(data);
+      console.log("ML insights received:", data);
+    } catch (error) {
+      console.error("ML insights error:", error);
+      setMlError(error.message);
+    }
+  };
+
+  fetchMLInsights();
+}, []);
+
+ 
+const currentMonth = new Date().getMonth()
+const currentYear = new Date().getFullYear()
+
+const currentMonthTransactions = transactions.filter((transaction) => {
+  const date = new Date(transaction.transactionDate + "T00:00:00")
+
+  return (
+    date.getMonth() === currentMonth &&
+    date.getFullYear() === currentYear
+  )
+})
+
+const expenseTransactions = currentMonthTransactions.filter(
+  (transaction) =>
+    transaction.transactionType?.toLowerCase() === "expense"
+)
+
+const categoryTotals = {}
+
+
+expenseTransactions.forEach((transaction) => {
+  const category = transaction.category
+
+  if (category?.categoryType?.toLowerCase() === "income") {
+    return
+  }
+
+  const categoryName = category?.categoryName || "Other"
+
+  categoryTotals[categoryName] =
+    (categoryTotals[categoryName] || 0) +
+    Number(transaction.amount || 0)
+})
+
+
+const categoryData = Object.entries(categoryTotals).map(
+  ([name, amount]) => ({ name, amount })
+)
+
+
+  
+const monthlyData = Array.from({ length: 6 }, (_, index) => {
+  const date = new Date()
+  date.setDate(1)
+  date.setMonth(date.getMonth() - (5 - index))
+
+  const year = date.getFullYear()
+  const monthIndex = date.getMonth()
+
+  const amount = transactions.reduce((total, transaction) => {
+    const transactionDate = new Date(
+      transaction.transactionDate + "T00:00:00"
+    )
+
+    const isExpense =
+      transaction.transactionType?.toLowerCase() === "expense"
+
+    if (
+      isExpense &&
+      transactionDate.getFullYear() === year &&
+      transactionDate.getMonth() === monthIndex
+    ) {
+      return total + Number(transaction.amount || 0)
+    }
+
+    return total
+  }, 0)
+
+  return {
+    month: date.toLocaleString("en-IN", { month: "short" }),
+    amount,
+  }
+})
+
+
+ 
+const pieData = categoryData.map((category) => ({
+  name: category.name,
+  value: category.amount,
+}))
+
 
   const COLORS = [
     "#E09DC3",
@@ -61,24 +202,42 @@ function Insights() {
     "#E8CEE5",
   ]
 
-  const totalExpenses = categoryData.reduce(
-    (total, item) => total + item.amount,
+  
+const totalExpenses = currentMonthTransactions
+  .filter(
+    (transaction) =>
+      transaction.transactionType?.toLowerCase() === "expense"
+  )
+  .reduce(
+    (total, transaction) =>
+      total + Number(transaction.amount || 0),
+    0
+  );
+
+const totalIncome = currentMonthTransactions
+  .filter(
+    (transaction) =>
+      transaction.transactionType?.toLowerCase() === "income"
+  )
+  .reduce(
+    (total, transaction) =>
+      total + Number(transaction.amount || 0),
     0
   )
 
-  const totalIncome = 45000
+const savings = totalIncome - totalExpenses
 
-  const savings = totalIncome - totalExpenses
+const savingsRate =
+  totalIncome > 0
+    ? Math.round((savings / totalIncome) * 100)
+    : 0
 
-  const savingsRate = Math.round(
-    (savings / totalIncome) * 100
-  )
+const highestCategory = categoryData.reduce(
+  (highest, item) =>
+    item.amount > highest.amount ? item : highest,
+  { name: "No expenses yet", amount: 0 }
+)
 
-  const highestCategory = categoryData.reduce(
-    (highest, item) =>
-      item.amount > highest.amount ? item : highest,
-    categoryData[0]
-  )
 
   const formatCurrency = (amount) => {
     return `₹${Number(amount).toLocaleString("en-IN")}`
@@ -106,6 +265,17 @@ function Insights() {
 
   return (
     <div className="min-h-screen bg-[#F8E8F0] p-8">
+      {loading && (
+  <p className="mb-4 text-center text-[#644984]">
+    Loading your financial insights...
+  </p>
+)}
+
+{error && (
+  <p className="mb-4 rounded-xl bg-white p-4 text-center text-red-600">
+    {error}
+  </p>
+)}
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#41366C]">
@@ -237,17 +407,89 @@ function Insights() {
               Smart Insight
             </h2>
 
-            <p className="mt-2 leading-7 text-[#F8E8F0]">
-              Food is currently your highest spending category.
-              You have spent {formatCurrency(highestCategory.amount)}{" "}
-              this month. Reducing food expenses by even 10% could
-              save around{" "}
-              {formatCurrency(highestCategory.amount * 0.1)}{" "}
-              this month.
-            </p>
+          
+<p className="mt-2 leading-7 text-[#F8E8F0]">
+  {highestCategory.amount > 0
+    ? `${highestCategory.name} is currently your highest spending category. You have spent ${formatCurrency(highestCategory.amount)} this month. Reducing ${highestCategory.name.toLowerCase()} expenses by even 10% could save around ${formatCurrency(highestCategory.amount * 0.1)} this month.`
+    : "No expenses recorded this month yet. Add transactions to see personalized spending insights."}
+</p>
+
           </div>
         </div>
       </div>
+      
+{/* ML Recommendations */}
+{mlInsights?.recommendations?.length > 0 && (
+  <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+    <h2 className="text-xl font-bold text-[#41366C]">
+      AI-Powered Recommendations
+    </h2>
+    <p className="mt-1 text-sm text-[#644984]">
+      Suggestions generated from your financial data.
+    </p>
+
+    <ul className="mt-4 space-y-3">
+      {mlInsights.recommendations.map((recommendation, index) => (
+        <li
+          key={index}
+          className="rounded-xl bg-[#F8E8EF] p-4 text-[#41366C]"
+        >
+          {recommendation}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+
+{/* ML Anomaly Detection */}
+{mlInsights?.anomaly_detection && (
+  <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+    <h2 className="text-xl font-bold text-[#41366C]">
+      Anomaly Detection
+    </h2>
+
+    <p className="mt-1 text-sm text-[#644984]">
+      Unusual transactions identified by the ML model.
+    </p>
+
+    <div className="mt-4 rounded-xl bg-[#F8E8EF] p-4">
+      <p className="text-sm text-[#644984]">
+        Unusual transactions detected
+      </p>
+      <p className="mt-1 text-2xl font-bold text-[#41366C]">
+        {mlInsights.anomaly_detection.total_anomalies ?? 0}
+      </p>
+    </div>
+
+    {mlInsights.anomaly_detection.unusual_transactions?.length > 0 ? (
+      <ul className="mt-4 space-y-3">
+        {mlInsights.anomaly_detection.unusual_transactions.map(
+          (transaction, index) => (
+            <li
+              key={index}
+              className="rounded-xl border border-[#E8CEE5] p-4 text-[#41366C]"
+            >
+              <p className="font-semibold">
+                {transaction.category || "Uncategorized"}
+              </p>
+              <p className="mt-1 text-sm">
+                Amount: ₹{Number(transaction.amount).toLocaleString("en-IN")}
+              </p>
+              <p className="text-sm">
+                Date: {transaction.date || "Not available"}
+              </p>
+            </li>
+          )
+        )}
+      </ul>
+    ) : (
+      <p className="mt-3 text-sm text-[#644984]">
+        No unusual transactions were detected in the current data.
+      </p>
+    )}
+  </div>
+)}
 
       {/* Charts */}
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
@@ -431,7 +673,7 @@ function Insights() {
             </p>
 
             <p className="mt-1 text-xl font-bold text-[#41366C]">
-              {formatCurrency(4500)}
+            {formatCurrency(Math.max(0, Math.round(totalIncome * 0.1)))}
             </p>
           </div>
         </div>

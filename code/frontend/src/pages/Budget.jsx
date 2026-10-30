@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Wallet,
   TrendingDown,
@@ -10,47 +10,102 @@ import {
 } from "lucide-react"
 
 function Budget() {
-  const [budgets, setBudgets] = useState([
-    {
-      id: 1,
-      category: "Food",
-      budget: 5000,
-      spent: 4500,
-    },
-    {
-      id: 2,
-      category: "Shopping",
-      budget: 4000,
-      spent: 3200,
-    },
-    {
-      id: 3,
-      category: "Transport",
-      budget: 3500,
-      spent: 2800,
-    },
-    {
-      id: 4,
-      category: "Bills",
-      budget: 5000,
-      spent: 4100,
-    },
-    {
-      id: 5,
-      category: "Entertainment",
-      budget: 3000,
-      spent: 1800,
-    },
-  ])
+  
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        setError("Please log in again.")
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError("")
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        }
+
+        const [budgetResponse, categoryResponse] = await Promise.all([
+          fetch("http://localhost:8080/api/budgets", { headers }),
+          fetch("http://localhost:8080/api/categories", { headers }),
+        ])
+
+        if (!budgetResponse.ok || !categoryResponse.ok) {
+          throw new Error("Could not load budgets or categories.")
+        }
+
+        const budgetData = await budgetResponse.json()
+        const categoryData = await categoryResponse.json()
+
+        setCategories(categoryData)
+
+        const budgetItems = await Promise.all(
+          budgetData.map(async (budget) => {
+            let spent = 0
+
+            try {
+              const spentResponse = await fetch(
+                `http://localhost:8080/api/budgets/${budget.budgetId}/spent`,
+                { headers }
+              )
+
+              if (spentResponse.ok) {
+                spent = Number(await spentResponse.json()) || 0
+              }
+            } catch {
+              console.error("Could not load spending for budget", budget.budgetId)
+            }
+
+            return {
+              id: budget.budgetId,
+              categoryId: budget.category?.categoryId,
+              category: budget.category?.categoryName || budget.budgetName,
+              budgetName: budget.budgetName,
+              budget: Number(budget.amount) || 0,
+              spent,
+              startDate: budget.startDate,
+              endDate: budget.endDate,
+            }
+          })
+        )
+
+        setBudgets(budgetItems)
+      } catch (err) {
+        setError(err.message || "Something went wrong while loading budgets.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+
+  
+  const [budgets, setBudgets] = useState([])
+
 
   const [showForm, setShowForm] = useState(false)
 
   const [editingId, setEditingId] = useState(null)
 
-  const [formData, setFormData] = useState({
-    category: "",
-    amount: "",
-  })
+  
+const [formData, setFormData] = useState({
+  categoryId: "",
+  budgetName: "",
+  amount: "",
+  startDate: "",
+  endDate: "",
+})
+
 
   const totalBudget = budgets.reduce(
     (total, item) => total + item.budget,
@@ -69,87 +124,225 @@ function Budget() {
       ? (totalSpent / totalBudget) * 100
       : 0
 
-  const openAddForm = () => {
-    setEditingId(null)
+ 
+const openAddForm = () => {
+  setEditingId(null)
 
-    setFormData({
-      category: "",
-      amount: "",
-    })
+  setFormData({
+    categoryId: "",
+    budgetName: "",
+    amount: "",
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: `${new Date().getFullYear()}-${String(
+      new Date().getMonth() + 1
+    ).padStart(2, "0")}-${String(
+      new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    ).padStart(2, "0")}`,
+  })
 
-    setShowForm(true)
+  setShowForm(true)
+}
+
+const openEditForm = (budget) => {
+  setEditingId(budget.id)
+
+  setFormData({
+    categoryId: String(budget.categoryId || ""),
+    budgetName: budget.budgetName || budget.category,
+    amount: String(budget.budget),
+    startDate: budget.startDate || "",
+    endDate: budget.endDate || "",
+  })
+
+  setShowForm(true)
+}
+
+
+  
+const handleSubmit = async (e) => {
+  e.preventDefault()
+
+  if (
+    !formData.categoryId ||
+    !formData.budgetName.trim() ||
+    !formData.amount ||
+    !formData.startDate ||
+    !formData.endDate
+  ) {
+    alert("Please fill in all budget fields.")
+    return
   }
 
-  const openEditForm = (budget) => {
-    setEditingId(budget.id)
+  const amount = Number(formData.amount)
 
-    setFormData({
-      category: budget.category,
-      amount: budget.budget,
-    })
-
-    setShowForm(true)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert("Budget amount must be greater than zero.")
+    return
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  if (formData.endDate < formData.startDate) {
+    alert("End date cannot be before start date.")
+    return
+  }
 
-    if (!formData.category || !formData.amount) {
-      return
+  const token = localStorage.getItem("token")
+  const user = JSON.parse(localStorage.getItem("user") || "null")
+
+  if (!token || !user?.userId) {
+    alert("Please log in again.")
+    return
+  }
+
+  const payload = {
+    budgetName: formData.budgetName.trim(),
+    amount,
+    startDate: formData.startDate,
+    endDate: formData.endDate,
+    category: {
+      categoryId: Number(formData.categoryId),
+    },
+  }
+
+  try {
+    const url = editingId
+      ? `http://localhost:8080/api/budgets/${editingId}`
+      : `http://localhost:8080/api/budgets/user/${user.userId}/category/${formData.categoryId}`
+
+    const response = await fetch(url, {
+      method: editingId ? "PUT" : "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Failed to save budget.")
     }
 
-    const amount = Number(formData.amount)
+    const savedBudget = await response.json()
+    let spent = 0
 
     if (editingId) {
-      setBudgets(
-        budgets.map((item) =>
-          item.id === editingId
-            ? {
-                ...item,
-                category: formData.category,
-                budget: amount,
-              }
-            : item
+      const spentResponse = await fetch(
+        `http://localhost:8080/api/budgets/${savedBudget.budgetId}/spent`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (spentResponse.ok) {
+        spent = Number(await spentResponse.json()) || 0
+      }
+    }
+
+    const updatedItem = {
+      id: savedBudget.budgetId,
+      categoryId: savedBudget.category?.categoryId,
+      category: savedBudget.category?.categoryName || savedBudget.budgetName,
+      budgetName: savedBudget.budgetName,
+      budget: Number(savedBudget.amount) || 0,
+      spent,
+      startDate: savedBudget.startDate,
+      endDate: savedBudget.endDate,
+    }
+
+    if (editingId) {
+      setBudgets((previous) =>
+        previous.map((item) =>
+          item.id === editingId ? updatedItem : item
         )
       )
     } else {
-      const newBudget = {
-        id: Date.now(),
-        category: formData.category,
-        budget: amount,
-        spent: 0,
-      }
-
-      setBudgets([...budgets, newBudget])
+      setBudgets((previous) => [...previous, updatedItem])
     }
 
     setFormData({
-      category: "",
+      categoryId: "",
+      budgetName: "",
       amount: "",
+      startDate: "",
+      endDate: "",
     })
 
     setEditingId(null)
     setShowForm(false)
+  } catch (err) {
+    alert(err.message || "Could not save budget.")
+  }
+}
+
+
+ 
+const handleDelete = async (id) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this budget?"
+  )
+
+  if (!confirmed) return
+
+  const token = localStorage.getItem("token")
+
+  if (!token) {
+    alert("Please log in again.")
+    return
   }
 
-  const handleDelete = (id) => {
-    setBudgets(
-      budgets.filter((item) => item.id !== id)
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/budgets/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     )
-  }
 
-  const handleCancel = () => {
-    setFormData({
-      category: "",
-      amount: "",
-    })
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Failed to delete budget.")
+    }
 
-    setEditingId(null)
-    setShowForm(false)
+    setBudgets((previous) =>
+      previous.filter((item) => item.id !== id)
+    )
+  } catch (err) {
+    alert(err.message || "Could not delete budget.")
   }
+}
+
+
+  
+const handleCancel = () => {
+  setFormData({
+    categoryId: "",
+    budgetName: "",
+    amount: "",
+    startDate: "",
+    endDate: "",
+  })
+
+  setEditingId(null)
+  setShowForm(false)
+}
+
 
   return (
     <div className="min-h-screen bg-[#F8E8F0] p-8">
+      
+{loading && (
+  <p className="mb-4 text-center text-[#644984]">
+    Loading your budgets...
+  </p>
+)}
+
+{error && (
+  <p className="mb-4 rounded-xl bg-white p-4 text-center text-red-600">
+    {error}
+  </p>
+)}
+
 
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -212,47 +405,69 @@ function Budget() {
                 Category
               </label>
 
-              <select
-                value={formData.category}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    category: e.target.value,
-                  })
-                }
-                className="w-full rounded-xl border border-[#E8CEE5] bg-white px-4 py-3 outline-none focus:border-[#B07EAA]"
-              >
-                <option value="">
-                  Select category
-                </option>
+              
+<select
+  value={formData.categoryId}
+  onChange={(e) => {
+    const selectedCategory = categories.find(
+      (category) =>
+        String(category.categoryId) === e.target.value
+    )
 
-                <option value="Food">
-                  Food
-                </option>
+    setFormData((previous) => ({
+      ...previous,
+      categoryId: e.target.value,
+      budgetName:
+        previous.budgetName ||
+        selectedCategory?.categoryName ||
+        "",
+    }))
+  }}
+  required
+  className="w-full rounded-xl border border-[#E8CEE5] bg-white px-4 py-3 outline-none focus:border-[#B07EAA]"
+>
+  <option value="">Select category</option>
 
-                <option value="Shopping">
-                  Shopping
-                </option>
+  {categories
+    .filter((category) =>
+      !category.categoryType ||
+      category.categoryType.toLowerCase() === "expense"
+    )
+    .map((category) => (
+      <option
+        key={category.categoryId}
+        value={category.categoryId}
+      >
+        {category.categoryName}
+      </option>
+    ))}
+</select>
 
-                <option value="Transport">
-                  Transport
-                </option>
-
-                <option value="Bills">
-                  Bills
-                </option>
-
-                <option value="Entertainment">
-                  Entertainment
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
-              </select>
             </div>
 
             {/* Amount */}
+            
+{/* Budget Name */}
+<div>
+  <label className="mb-2 block text-sm font-semibold text-[#41366C]">
+    Budget Name
+  </label>
+
+  <input
+    type="text"
+    placeholder="e.g. Monthly Food Budget"
+    value={formData.budgetName}
+    onChange={(e) =>
+      setFormData((previous) => ({
+        ...previous,
+        budgetName: e.target.value,
+      }))
+    }
+    required
+    className="w-full rounded-xl border border-[#E8CEE5] px-4 py-3 outline-none focus:border-[#B07EAA]"
+  />
+</div>
+
             <div>
               <label className="mb-2 block text-sm font-semibold text-[#41366C]">
                 Budget Amount
@@ -274,6 +489,47 @@ function Budget() {
             </div>
 
             {/* Buttons */}
+            
+{/* Budget Date Range */}
+<div>
+  <label className="mb-2 block text-sm font-semibold text-[#41366C]">
+    Start Date
+  </label>
+
+  <input
+    type="date"
+    value={formData.startDate}
+    onChange={(e) =>
+      setFormData((previous) => ({
+        ...previous,
+        startDate: e.target.value,
+      }))
+    }
+    required
+    className="w-full rounded-xl border border-[#E8CEE5] px-4 py-3 outline-none focus:border-[#B07EAA]"
+  />
+</div>
+
+<div>
+  <label className="mb-2 block text-sm font-semibold text-[#41366C]">
+    End Date
+  </label>
+
+  <input
+    type="date"
+    min={formData.startDate}
+    value={formData.endDate}
+    onChange={(e) =>
+      setFormData((previous) => ({
+        ...previous,
+        endDate: e.target.value,
+      }))
+    }
+    required
+    className="w-full rounded-xl border border-[#E8CEE5] px-4 py-3 outline-none focus:border-[#B07EAA]"
+  />
+</div>
+
             <div className="flex gap-3 md:col-span-2">
 
               <button

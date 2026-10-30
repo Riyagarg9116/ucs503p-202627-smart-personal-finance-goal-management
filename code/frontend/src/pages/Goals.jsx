@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Target,
   Plus,
@@ -10,29 +10,56 @@ import {
 } from "lucide-react"
 
 function Goals() {
-  const [goals, setGoals] = useState([
-    {
-      id: 1,
-      name: "Emergency Fund",
-      target: 50000,
-      saved: 30000,
-      deadline: "2026-12-31",
-    },
-    {
-      id: 2,
-      name: "New Laptop",
-      target: 80000,
-      saved: 45000,
-      deadline: "2027-06-30",
-    },
-    {
-      id: 3,
-      name: "Vacation",
-      target: 40000,
-      saved: 18000,
-      deadline: "2027-03-31",
-    },
-  ])
+const [goals, setGoals] = useState([])
+useEffect(() => {
+  const fetchGoals = async () => {
+    try {
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        console.error("No JWT token found")
+        return
+      }
+
+      const response = await fetch(
+        "http://localhost:8080/api/goals",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch goals: ${response.status}`
+        )
+      }
+
+      const data = await response.json()
+
+      console.log("Backend goals:", data)
+
+      const formattedGoals = data.map((goal) => ({
+        id: goal.goalId,
+        name: goal.goalName,
+        target: Number(goal.targetAmount),
+        saved: Number(goal.currentAmount || 0),
+        deadline: goal.targetDate,
+        priority: goal.priority,
+        status: goal.status,
+      }))
+
+      setGoals(formattedGoals)
+    } catch (error) {
+      console.error("Error fetching goals:", error)
+    }
+  }
+
+  fetchGoals()
+}, [])
 
   const [showForm, setShowForm] = useState(false)
   const [showAddMoney, setShowAddMoney] = useState(false)
@@ -76,49 +103,120 @@ function Goals() {
     setShowForm(false)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+  e.preventDefault()
 
-    if (
-      !formData.name ||
-      !formData.target ||
-      !formData.saved ||
-      !formData.deadline
-    ) {
+  if (
+    !formData.name ||
+    !formData.target ||
+    !formData.saved ||
+    !formData.deadline
+  ) {
+    alert("Please fill all fields")
+    return
+  }
+
+  try {
+    const token = localStorage.getItem("token")
+
+    if (!token) {
+      alert("Please login first")
       return
     }
 
-    const target = Number(formData.target)
-    const saved = Math.min(Number(formData.saved), target)
+    // Get logged-in user ID from JWT
+   const user = JSON.parse(localStorage.getItem("user") || "null")
+
+if (!user?.userId) {
+  alert("User information not found. Please log in again.")
+  return
+}
+
+const userId = user.userId
+
+    const targetAmount = Number(formData.target)
+    const currentAmount = Math.min(
+      Number(formData.saved),
+      targetAmount
+    )
+
+    const goalData = {
+      goalName: formData.name,
+      targetAmount: targetAmount,
+      currentAmount: currentAmount,
+      targetDate: formData.deadline,
+      priority: "medium",
+      status: "active",
+    }
+
+    let response
 
     if (editingId) {
-      setGoals(
-        goals.map((goal) =>
-          goal.id === editingId
-            ? {
-                ...goal,
-                name: formData.name,
-                target,
-                saved,
-                deadline: formData.deadline,
-              }
-            : goal
+      // UPDATE existing goal
+      response = await fetch(
+        `http://localhost:8080/api/goals/${editingId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(goalData),
+        }
+      )
+    } else {
+      // CREATE new goal
+      response = await fetch(
+        `http://localhost:8080/api/goals/user/${userId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(goalData),
+        }
+      )
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(
+        `Request failed: ${response.status} ${errorText}`
+      )
+    }
+
+    const savedGoal = await response.json()
+
+    console.log("Goal saved:", savedGoal)
+
+    const formattedGoal = {
+      id: savedGoal.goalId,
+      name: savedGoal.goalName,
+      target: Number(savedGoal.targetAmount),
+      saved: Number(savedGoal.currentAmount || 0),
+      deadline: savedGoal.targetDate,
+      priority: savedGoal.priority,
+      status: savedGoal.status,
+    }
+
+    if (editingId) {
+      setGoals((prevGoals) =>
+        prevGoals.map((goal) =>
+          goal.id === editingId ? formattedGoal : goal
         )
       )
     } else {
-      const newGoal = {
-        id: Date.now(),
-        name: formData.name,
-        target,
-        saved,
-        deadline: formData.deadline,
-      }
-
-      setGoals([...goals, newGoal])
+      setGoals((prevGoals) => [...prevGoals, formattedGoal])
     }
 
     resetForm()
+
+  } catch (error) {
+    console.error("Error saving goal:", error)
+    alert(`Could not save goal: ${error.message}`)
   }
+}
 
   const handleEdit = (goal) => {
     setEditingId(goal.id)
@@ -133,40 +231,139 @@ function Goals() {
     setShowForm(true)
   }
 
-  const handleDelete = (id) => {
-    setGoals(goals.filter((goal) => goal.id !== id))
+ const handleDelete = async (id) => {
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this goal?"
+  )
+
+  if (!confirmDelete) {
+    return
   }
 
-  const handleAddMoney = (e) => {
-    e.preventDefault()
+  try {
+    const token = localStorage.getItem("token")
 
-    if (!selectedGoal || !moneyAmount) {
+    if (!token) {
+      alert("Please login first")
       return
     }
 
-    const amount = Number(moneyAmount)
-
-    if (amount <= 0) {
-      return
-    }
-
-    setGoals(
-      goals.map((goal) => {
-        if (goal.id === selectedGoal.id) {
-          return {
-            ...goal,
-            saved: Math.min(goal.saved + amount, goal.target),
-          }
-        }
-
-        return goal
-      })
+    const response = await fetch(
+      `http://localhost:8080/api/goals/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
     )
 
-    setMoneyAmount("")
-    setSelectedGoal(null)
-    setShowAddMoney(false)
+    if (!response.ok) {
+      const errorText = await response.text()
+
+      throw new Error(
+        `Delete failed: ${response.status} ${errorText}`
+      )
+    }
+
+    // Remove from the frontend after backend deletion succeeds
+    setGoals((prevGoals) =>
+      prevGoals.filter((goal) => goal.id !== id)
+    )
+
+    console.log("Goal deleted successfully")
+  } catch (error) {
+    console.error("Error deleting goal:", error)
+    alert(`Could not delete goal: ${error.message}`)
   }
+}
+
+ const handleAddMoney = async (e) => {
+  e.preventDefault()
+
+  const amount = Number(moneyAmount)
+
+  if (!amount || amount <= 0) {
+    alert("Please enter a valid amount")
+    return
+  }
+
+  if (!selectedGoal) {
+    return
+  }
+
+  try {
+    const token = localStorage.getItem("token")
+
+    if (!token) {
+      alert("Please login first")
+      return
+    }
+
+    const newSavedAmount = Math.min(
+      selectedGoal.saved + amount,
+      selectedGoal.target
+    )
+
+    const goalData = {
+      goalName: selectedGoal.name,
+      targetAmount: selectedGoal.target,
+      currentAmount: newSavedAmount,
+      targetDate: selectedGoal.deadline,
+      priority: selectedGoal.priority || "medium",
+      status: selectedGoal.status || "active",
+    }
+
+    const response = await fetch(
+      `http://localhost:8080/api/goals/${selectedGoal.id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(goalData),
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+
+      throw new Error(
+        `Request failed: ${response.status} ${errorText}`
+      )
+    }
+
+    const updatedGoal = await response.json()
+
+    console.log("Goal after adding money:", updatedGoal)
+
+    const formattedGoal = {
+      id: updatedGoal.goalId,
+      name: updatedGoal.goalName,
+      target: Number(updatedGoal.targetAmount),
+      saved: Number(updatedGoal.currentAmount || 0),
+      deadline: updatedGoal.targetDate,
+      priority: updatedGoal.priority,
+      status: updatedGoal.status,
+    }
+
+    setGoals((prevGoals) =>
+      prevGoals.map((goal) =>
+        goal.id === selectedGoal.id ? formattedGoal : goal
+      )
+    )
+
+    setSelectedGoal(null)
+    setMoneyAmount("")
+    setShowAddMoney(false)
+
+  } catch (error) {
+    console.error("Error adding money:", error)
+    alert(`Could not add money: ${error.message}`)
+  }
+}
 
   const totalTarget = goals.reduce(
     (total, goal) => total + Number(goal.target),

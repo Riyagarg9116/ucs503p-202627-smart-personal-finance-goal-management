@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Plus,
   Pencil,
@@ -11,38 +11,90 @@ import {
 } from "lucide-react"
 
 function Rules() {
-  const [rules, setRules] = useState([
-    {
-      id: 1,
-      name: "Food Spending Alert",
-      type: "Spending Limit",
-      category: "Food",
-      condition: "Amount greater than ₹1,000",
-      action: "Show spending alert",
-      priority: "High",
-      enabled: true,
-    },
-    {
-      id: 2,
-      name: "Shopping Categorization",
-      type: "Auto Categorization",
-      category: "Shopping",
-      condition: "Transaction contains shopping",
-      action: "Categorize as Shopping",
-      priority: "Medium",
-      enabled: true,
-    },
-    {
-      id: 3,
-      name: "Large Expense Alert",
-      type: "Spending Limit",
-      category: "All Categories",
-      condition: "Amount greater than ₹5,000",
-      action: "Show large expense alert",
-      priority: "High",
-      enabled: false,
-    },
-  ])
+ const [rules, setRules] = useState([])
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState("")
+
+useEffect(() => {
+  const fetchRules = async () => {
+    const token = localStorage.getItem("token")
+
+    if (!token) {
+      setError("Please log in again.")
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError("")
+
+      const response = await fetch(
+        "http://localhost:8080/api/rules",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Could not load your rules.")
+      }
+
+      const data = await response.json()
+
+     
+const loadedRules = data.map((item) => {
+  let condition = {}
+  let action = {}
+
+  try {
+    condition = item.conditionData
+      ? JSON.parse(item.conditionData)
+      : {}
+  } catch {
+    condition = {}
+  }
+
+  try {
+    action = item.actionData
+      ? JSON.parse(item.actionData)
+      : {}
+  } catch {
+    action = {}
+  }
+
+  return {
+    id: item.ruleId,
+    name: item.ruleName,
+    type: item.ruleType || "Spending Limit",
+    category: condition.category || "All Categories",
+    condition:
+      condition.condition ||
+      condition.description ||
+      "",
+    action:
+      action.action ||
+      action.description ||
+      "",
+    priority: condition.priority || "Medium",
+    enabled: item.isActive ?? true,
+  }
+})
+
+
+      setRules(loadedRules)
+    } catch (err) {
+      setError(err.message || "Something went wrong.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchRules()
+}, [])
+
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -73,41 +125,90 @@ function Rules() {
     setShowForm(false)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
 
-    if (
-      !formData.name ||
-      !formData.condition ||
-      !formData.action
-    ) {
-      return
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault()
 
-    if (editingId) {
-      setRules(
-        rules.map((rule) =>
-          rule.id === editingId
-            ? {
-                ...rule,
-                ...formData,
-              }
-            : rule
-        )
-      )
-    } else {
-      setRules([
-        ...rules,
-        {
-          id: Date.now(),
-          ...formData,
-          enabled: true,
+  if (
+    !formData.name.trim() ||
+    !formData.condition.trim() ||
+    !formData.action.trim()
+  ) {
+    alert("Please fill in all fields.")
+    return
+  }
+
+  const token = localStorage.getItem("token")
+  const user = JSON.parse(localStorage.getItem("user") || "null")
+
+  if (!token || !user?.userId) {
+    alert("Please log in again.")
+    return
+  }
+
+  const payload = {
+    ruleName: formData.name.trim(),
+    ruleType: formData.type,
+    conditionData: JSON.stringify({
+      category: formData.category,
+      condition: formData.condition.trim(),
+      priority: formData.priority,
+    }),
+    actionData: JSON.stringify({
+      action: formData.action.trim(),
+    }),
+    isActive: editingId
+      ? rules.find((rule) => rule.id === editingId)?.enabled ?? true
+      : true,
+  }
+
+  try {
+    const response = await fetch(
+      editingId
+        ? `http://localhost:8080/api/rules/${editingId}`
+        : `http://localhost:8080/api/rules/user/${user.userId}`,
+      {
+        method: editingId ? "PUT" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      ])
+        body: JSON.stringify(payload),
+      }
+    )
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Could not save the rule.")
     }
+
+    const saved = await response.json()
+
+    const savedRule = {
+      id: saved.ruleId,
+      name: saved.ruleName,
+      type: saved.ruleType,
+      category: formData.category,
+      condition: formData.condition.trim(),
+      action: formData.action.trim(),
+      priority: formData.priority,
+      enabled: saved.isActive ?? true,
+    }
+
+    setRules((previous) =>
+      editingId
+        ? previous.map((rule) =>
+            rule.id === editingId ? savedRule : rule
+          )
+        : [...previous, savedRule]
+    )
 
     resetForm()
+  } catch (err) {
+    alert(err.message || "Could not save the rule.")
   }
+}
+
 
   const handleEdit = (rule) => {
     setEditingId(rule.id)
@@ -124,22 +225,106 @@ function Rules() {
     setShowForm(true)
   }
 
-  const handleDelete = (id) => {
-    setRules(rules.filter((rule) => rule.id !== id))
+ 
+const handleDelete = async (id) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this rule?"
+  )
+
+  if (!confirmed) return
+
+  const token = localStorage.getItem("token")
+
+  if (!token) {
+    alert("Please log in again.")
+    return
   }
 
-  const toggleRule = (id) => {
-    setRules(
-      rules.map((rule) =>
-        rule.id === id
-          ? {
-              ...rule,
-              enabled: !rule.enabled,
-            }
-          : rule
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/rules/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Could not delete the rule.")
+    }
+
+    setRules((previous) =>
+      previous.filter((rule) => rule.id !== id)
+    )
+  } catch (err) {
+    alert(err.message || "Could not delete the rule.")
+  }
+}
+
+
+
+const toggleRule = async (id) => {
+  const rule = rules.find((item) => item.id === id)
+  if (!rule) return
+
+  const token = localStorage.getItem("token")
+
+  if (!token) {
+    alert("Please log in again.")
+    return
+  }
+
+  const newStatus = !rule.enabled
+
+  const payload = {
+    ruleName: rule.name,
+    ruleType: rule.type,
+    conditionData: JSON.stringify({
+      category: rule.category,
+      condition: rule.condition,
+      priority: rule.priority,
+    }),
+    actionData: JSON.stringify({
+      action: rule.action,
+    }),
+    isActive: newStatus,
+  }
+
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/rules/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    )
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || "Could not update rule status.")
+    }
+
+    const saved = await response.json()
+
+    setRules((previous) =>
+      previous.map((item) =>
+        item.id === id
+          ? { ...item, enabled: saved.isActive ?? newStatus }
+          : item
       )
     )
+  } catch (err) {
+    alert(err.message || "Could not update rule status.")
   }
+}
+
 
   return (
     <div className="min-h-screen bg-[#F8E8F0] p-8">

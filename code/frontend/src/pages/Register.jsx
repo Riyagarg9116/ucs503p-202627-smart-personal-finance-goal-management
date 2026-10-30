@@ -25,37 +25,61 @@ function Register() {
 
   const [error, setError] = useState("")
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+ 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
 
-    setError("")
-
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
-      setError("Please fill in all fields.")
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError(
-        "Password must be at least 6 characters long."
-      )
-      return
-    }
-
-    if (
-      formData.password !== formData.confirmPassword
-    ) {
-      setError("Passwords do not match.")
-      return
-    }
-
-    navigate("/login")
+  if (
+    !formData.name.trim() ||
+    !formData.email.trim() ||
+    !formData.password ||
+    !formData.confirmPassword
+  ) {
+    setError("Please fill in all fields.");
+    return;
   }
+
+  if (formData.password.length < 6) {
+    setError("Password must be at least 6 characters long.");
+    return;
+  }
+
+  if (formData.password !== formData.confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://localhost:8080/api/auth/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const message = await response.text();
+      setError(message || "Registration failed. Please try again.");
+      return;
+    }
+
+    navigate("/login");
+  } catch (error) {
+    setError(
+      "Could not connect to the server. Make sure the backend is running."
+    );
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-[#F8E8F0]">
